@@ -1,0 +1,20 @@
+{
+  "name": "lili-y-su-sazon-completa",
+  "version": "1.0.0",
+  "description": "Sistema ERP de catering artesanal - Lili y su Sazón Completa",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n SERVER,CLIENT -c green,blue \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
+    "dev:server": "pnpm --filter server dev",
+    "dev:client": "pnpm --filter client dev",
+    "build": "pnpm --filter client build",
+    "start": "pnpm --filter server start",
+    "setup": "pnpm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["bcrypt", "esbuild"]
+  }
+}

@@ -20,7 +20,7 @@
 ## 📁 Estructura del Proyecto
 
 ```
-lili-sazoncompleta/
+admonliliysusazoncompleta/
 ├── package.json              ← Workspace raíz
 ├── pnpm-workspace.yaml       ← Configuración de workspaces pnpm
 ├── .gitignore
@@ -153,6 +153,9 @@ CREATE TABLE public.usuarios (
   activo        BOOLEAN       NOT NULL DEFAULT TRUE
 );
 ```
+ALTER TABLE public.usuarios 
+ADD COLUMN IF NOT EXISTS reset_token TEXT,
+ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ;
 
 ### Crear usuario de prueba
 
@@ -203,4 +206,4 @@ VALUES (1, 'admin@liliysazon.com', 'PEGA_EL_HASH_AQUI', 'admin', true);
 
 ---
 
-*© 2024 Lili y su Sazón Completa · Hecho con ❤️ en Colombia 🇨🇴*
+*© 2012 Lili y su Sazón Completa · Hecho con ❤️ en Colombia 🇨🇴*

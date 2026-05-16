@@ -10,11 +10,13 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/uploads': {                    // ← LÍNEA NUEVA
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
     },
   },
   resolve: {
-    alias: {
-      '@': '/src',
-    },
+    alias: { '@': '/src' },
   },
 });

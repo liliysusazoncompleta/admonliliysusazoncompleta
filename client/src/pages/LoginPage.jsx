@@ -54,8 +54,8 @@ const CheckIcon = () => (
 );
 
 // ── Logotipo SVG de la empresa (artesanal) ────────────────────────────────────
-const LogoMarca = () => ( 
- <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-modal">
+const LogoMarca = () => (
+   <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-modal">
     <img
       src={logoLili}
       alt="Lili y su Sazón Completa"
@@ -107,7 +107,7 @@ const HeroPanel = () => {
         >
           <div className="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-float" />
           <span className="text-white/90 text-xs font-semibold tracking-wider uppercase">
-            Catering Gourmet · Medellin-Colombia
+            Catering Premium · Medellin - Antioquia · Colombia
           </span>
         </div>
 
@@ -121,7 +121,7 @@ const HeroPanel = () => {
             animationFillMode: 'forwards',
           }}
         >
-          Cocina a puesta cerradas con<br />
+          Cocinamos con<br />
           <span style={{ color: '#add461' }}>amor</span> para<br />
           tu familia
         </h1>
@@ -132,7 +132,7 @@ const HeroPanel = () => {
                      opacity-0 animate-fade-up animation-delay-500"
           style={{ fontSize: '1rem', animationFillMode: 'forwards' }}
         >
-          Gestión gourmet de catering artesanal para experiencias culinarias.
+          Gestión premium de catering artesanal para experiencias culinarias con amor.
         </p>
 
         {/* Stats */}

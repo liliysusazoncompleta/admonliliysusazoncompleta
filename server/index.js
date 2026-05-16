@@ -3,9 +3,17 @@ import express  from 'express';
 import cors     from 'cors';
 import helmet   from 'helmet';
 import authRoutes       from './routes/authRoutes.js';
+import productosRoutes  from './routes/productosRoutes.js';
 import { testConnection } from './config/db.js';
+import tipoProductoRoutes from "./routes/tipoProductoRoutes.js";
+import path from 'path';
+
 
 const app  = express();
+app.use(
+  '/uploads',
+  express.static(path.resolve('server/uploads'))
+);
 const PORT = process.env.PORT || 3001;
 
 // ── Seguridad ─────────────────────────────────────────────────────────────────
@@ -41,8 +49,16 @@ app.get('/', (req, res) => {
   });
 });
 
+
+
 // ── Rutas de autenticación ────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
+app.use('/api/auth',      authRoutes);
+app.use('/api/productos', productosRoutes);
+app.use("/api/tipo-producto", tipoProductoRoutes);
+app.use(
+  '/uploads',
+  express.static(path.resolve('server/uploads'))
+);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {

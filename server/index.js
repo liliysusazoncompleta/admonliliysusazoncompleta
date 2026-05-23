@@ -4,6 +4,8 @@ import cors     from 'cors';
 import helmet   from 'helmet';
 import authRoutes       from './routes/authRoutes.js';
 import productosRoutes  from './routes/productosRoutes.js';
+import clientesRoutes   from './routes/clientesRoutes.js';
+import whatsappRoutes   from './routes/whatsappRoutes.js';
 import { testConnection } from './config/db.js';
 import tipoProductoRoutes from "./routes/tipoProductoRoutes.js";
 import path from 'path';
@@ -54,6 +56,8 @@ app.get('/', (req, res) => {
 // ── Rutas de autenticación ────────────────────────────────────────────────────
 app.use('/api/auth',      authRoutes);
 app.use('/api/productos', productosRoutes);
+app.use('/api/clientes',  clientesRoutes);
+app.use('/api/whatsapp',  whatsappRoutes);
 app.use("/api/tipo-producto", tipoProductoRoutes);
 app.use(
   '/uploads',

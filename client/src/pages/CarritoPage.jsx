@@ -68,6 +68,7 @@ export default function CarritoPage() {
   const [message, setMessage] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
+  const [pendingSendType, setPendingSendType] = useState(null);
 
   const vacio = items.length === 0;
 
@@ -190,11 +191,22 @@ export default function CarritoPage() {
     try {
       const element = previewModalRef.current;
       if (!element) {
-        setMessage({ type: 'error', text: 'Error al generar el PDF' });
+        setMessage({ type: 'error', text: 'No se pudo capturar el documento para PDF' });
         return null;
       }
 
-      const canvas = await html2canvas(element, { scale: 2, logging: false });
+      const contentDiv = element.querySelector('.p-8');
+      if (!contentDiv) {
+        setMessage({ type: 'error', text: 'Estructura de documento inválida' });
+        return null;
+      }
+
+      const canvas = await html2canvas(contentDiv, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+      });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210;
@@ -204,7 +216,7 @@ export default function CarritoPage() {
       return pdf.output('dataurlstring');
     } catch (error) {
       console.error('[PDF_ERROR]', error);
-      setMessage({ type: 'error', text: 'Error al generar el PDF' });
+      setMessage({ type: 'error', text: `Error al generar PDF: ${error.message}` });
       return null;
     }
   };
@@ -215,40 +227,56 @@ export default function CarritoPage() {
       return;
     }
 
+    if (!deliveryDate || !deliveryTime) {
+      setMessage({ type: 'error', text: 'Completa la fecha y hora de entrega.' });
+      return;
+    }
+
     setSendingWhatsapp(true);
     try {
-      const pdfBase64 = await generatePDF(type);
-      if (!pdfBase64) {
-        setSendingWhatsapp(false);
-        return;
-      }
+      setTimeout(async () => {
+        const pdfBase64 = await generatePDF(type);
+        if (!pdfBase64) {
+          setSendingWhatsapp(false);
+          return;
+        }
 
-      const response = await api.post('/whatsapp/send', {
-        clientPhone: selectedClient.telefono,
-        clientName: selectedClient.nombre,
-        pdfBase64,
-        type,
-      });
+        try {
+          const response = await api.post('/whatsapp/send', {
+            clientPhone: selectedClient.telefono,
+            clientName: selectedClient.nombre,
+            pdfBase64,
+            type,
+          });
 
-      if (response.data.success) {
-        setMessage({
-          type: 'success',
-          text: `${type === 'invoice' ? 'Factura' : 'Cotización'} enviada exitosamente a WhatsApp`,
-        });
-      } else {
-        setMessage({
-          type: 'warning',
-          text: response.data.message || 'Envío parcial a WhatsApp',
-        });
-      }
+          if (response.data.success) {
+            setMessage({
+              type: 'success',
+              text: `${type === 'invoice' ? 'Factura' : 'Cotización'} enviada exitosamente a WhatsApp`,
+            });
+          } else {
+            setMessage({
+              type: 'warning',
+              text: response.data.message || 'Envío parcial a WhatsApp',
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          setMessage({
+            type: 'error',
+            text: error.response?.data?.error || 'Error al enviar por WhatsApp',
+          });
+        } finally {
+          setSendingWhatsapp(false);
+        }
+      }, 300);
     } catch (error) {
       console.error(error);
+      setSendingWhatsapp(false);
       setMessage({
         type: 'error',
-        text: error.response?.data?.error || 'Error al enviar por WhatsApp',
+        text: 'Error al procesar la solicitud',
       });
-    } finally {
-      setSendingWhatsapp(false);
     }
   };
 
@@ -403,8 +431,6 @@ export default function CarritoPage() {
             setMessage(null);
           }}
           message={message}
-          onSendQuotation={() => sendToWhatsApp('quotation')}
-          onSendInvoice={() => sendToWhatsApp('invoice')}
           sendingWhatsapp={sendingWhatsapp}
         />
       )}
@@ -433,7 +459,7 @@ function CheckoutModal({
   onSearch, onSelectCliente, onFieldChange,
   onDeliveryDateChange, onDeliveryTimeChange,
   onCreateCliente, onFinalize, onReset, message,
-  previewOpen, setPreviewOpen, onSendQuotation, onSendInvoice, sendingWhatsapp,
+  previewOpen, setPreviewOpen, sendingWhatsapp,
 }) {
   if (!open) return null;
   return (
@@ -670,12 +696,16 @@ function CheckoutModal({
                     style={{ backgroundColor:C.container, color:C.primary, border:`1px solid ${C.border}` }}>
                     👁️ Vista previa
                   </button>
-                  <button type="button" onClick={onSendQuotation} disabled={sendingWhatsapp}
+                  <button type="button"
+                    onClick={() => { setPreviewOpen(true); setTimeout(() => sendToWhatsApp('quotation'), 300); }}
+                    disabled={sendingWhatsapp}
                     className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
                     style={{ backgroundColor:'#25D366', color:C.white }}>
                     {sendingWhatsapp ? '⏳ Enviando…' : '💬 Cotizar'}
                   </button>
-                  <button type="button" onClick={onSendInvoice} disabled={sendingWhatsapp}
+                  <button type="button"
+                    onClick={() => { setPreviewOpen(true); setTimeout(() => sendToWhatsApp('invoice'), 300); }}
+                    disabled={sendingWhatsapp}
                     className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
                     style={{ backgroundColor:'#25D366', color:C.white }}>
                     {sendingWhatsapp ? '⏳ Enviando…' : '💬 Facturar'}

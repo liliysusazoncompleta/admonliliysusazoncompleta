@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import AppLayout, { Ic, IK } from '../components/AppLayout.jsx';
+import { useCart } from '../hooks/useCart.jsx';
 
 const api = axios.create({ baseURL: '/api' });
 api.interceptors.request.use(cfg => {
@@ -459,7 +460,7 @@ function ConfirmModal({ open, producto, onConfirm, onClose, deleting }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // TARJETA DE PRODUCTO
 // ══════════════════════════════════════════════════════════════════════════════
-function ProductCard({ p, onEdit, onDelete }) {
+function ProductCard({ p, onEdit, onDelete, onAddToCart }) {
   const badge = getBadge(p.tipo_nombre);
   const [imgError, setImgError] = useState(false);
 
@@ -533,6 +534,15 @@ function ProductCard({ p, onEdit, onDelete }) {
         </div>
       </div>
 
+      {/* Botón principal: agregar al carrito */}
+      <button onClick={()=>onAddToCart(p)}
+        className="w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+        style={{ backgroundColor:C.primary, color:C.white, borderTop:`1px solid ${C.border}` }}
+        onMouseEnter={e=>e.currentTarget.style.backgroundColor=C.primary2}
+        onMouseLeave={e=>e.currentTarget.style.backgroundColor=C.primary}>
+        🛒 Agregar al carrito
+      </button>
+
       {/* Botones inferiores */}
       <div className="flex border-t" style={{ borderColor:C.border }}>
         <button onClick={()=>onEdit(p)}
@@ -558,7 +568,7 @@ function ProductCard({ p, onEdit, onDelete }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // VISTA TABLA
 // ══════════════════════════════════════════════════════════════════════════════
-function TablaProductos({ productos, onEdit, onDelete }) {
+function TablaProductos({ productos, onEdit, onDelete, onAddToCart }) {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border:`1px solid ${C.border}` }}>
       <div className="overflow-x-auto">
@@ -594,6 +604,11 @@ function TablaProductos({ productos, onEdit, onDelete }) {
                   <td className="px-4 py-3 font-extrabold text-sm" style={{ color:C.primary }}>{fmtPrecio(p.valor)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
+                      <button onClick={()=>onAddToCart(p)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                        style={{ backgroundColor:C.primary, color:C.white }}>
+                        🛒 Agregar
+                      </button>
                       <button onClick={()=>onEdit(p)}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
                         style={{ backgroundColor:'#eef3e4', color:C.primary }}>
@@ -632,6 +647,12 @@ export default function ProductosPage() {
   const [deleting,     setDeleting]     = useState(false);
   const { toasts, toast, removeToast }  = useToast();
   const searchTimer                     = useRef(null);
+  const { addItem }                     = useCart();
+
+  const handleAddToCart = useCallback((p) => {
+    addItem(p, 1);
+    toast(`"${p.nombre}" agregado al carrito.`);
+  }, [addItem, toast]);
 
   // ── Cargar tipos ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -760,11 +781,13 @@ export default function ProductosPage() {
           ) : vista === 'cards' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {productos.map(p => (
-                <ProductCard key={p.id_producto} p={p} onEdit={openEdit} onDelete={openDelete}/>
+                <ProductCard key={p.id_producto} p={p}
+                  onEdit={openEdit} onDelete={openDelete} onAddToCart={handleAddToCart}/>
               ))}
             </div>
           ) : (
-            <TablaProductos productos={productos} onEdit={openEdit} onDelete={openDelete}/>
+            <TablaProductos productos={productos}
+              onEdit={openEdit} onDelete={openDelete} onAddToCart={handleAddToCart}/>
           )}
 
           {/* ── Contador ───────────────────────────────────────────────── */}

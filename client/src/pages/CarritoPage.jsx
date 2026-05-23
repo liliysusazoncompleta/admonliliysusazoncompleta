@@ -68,7 +68,7 @@ export default function CarritoPage() {
   const [message, setMessage] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
-  const [pendingSendType, setPendingSendType] = useState(null);
+  const [previewDocumentType, setPreviewDocumentType] = useState(null);
 
   const vacio = items.length === 0;
 

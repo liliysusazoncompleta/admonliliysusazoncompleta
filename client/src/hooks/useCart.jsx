@@ -12,17 +12,15 @@ const STORAGE_KEY = 'lili_carrito';
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
-  const [items, setItems] = useState([]);
-
-  // Restaurar carrito al montar
-  useEffect(() => {
+  const [items, setItems] = useState(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw));
+      return raw ? JSON.parse(raw) : [];
     } catch {
       localStorage.removeItem(STORAGE_KEY);
+      return [];
     }
-  }, []);
+  });
 
   // Persistir cambios
   useEffect(() => {

@@ -5,7 +5,7 @@
  * Lista los productos seleccionados, permite ajustar cantidades,
  * eliminar ítems y muestra el total. Sirve como paso previo a Ventas.
  */
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -13,6 +13,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import AppLayout from '../components/AppLayout.jsx';
 import { useCart } from '../hooks/useCart.jsx';
+import logoLili from '../assets/LOGO_LILI.jpg';
 
 const C = {
   primary:'#476500', primary2:'#5d7f13',
@@ -34,6 +35,16 @@ const IMG_BY_TYPE = {
 };
 const getImg = (tipo, url) => url || IMG_BY_TYPE[tipo] || IMG_BY_TYPE.Carne;
 const fmtPrecio = (v) => `$${Number(v).toLocaleString('es-CO')}`;
+const fmtTime12h = (time) => {
+  if (!time) return '';
+  const [hourStr, minuteStr] = time.split(':');
+  const hour = Number(hourStr);
+  if (Number.isNaN(hour)) return time;
+  const minute = minuteStr || '00';
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
+};
 const EMPTY_CLIENT_FORM = {
   nombre: '', nit_cc: '', telefono: '', telefono_alt: '',
   direccion_principal: '', direccion_alterna: '', observaciones: '',
@@ -59,10 +70,13 @@ export default function CarritoPage() {
   const [query, setQuery] = useState('');
   const [clientes, setClientes] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [empleados, setEmpleados] = useState([]);
+  const [selectedVendedor, setSelectedVendedor] = useState(null);
   const [clienteForm, setClienteForm] = useState(EMPTY_CLIENT_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [savingCliente, setSavingCliente] = useState(false);
+  const [savingVenta, setSavingVenta] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [deliveryTime, setDeliveryTime] = useState('');
   const [message, setMessage] = useState(null);
@@ -76,6 +90,7 @@ export default function CarritoPage() {
     setQuery('');
     setClientes([]);
     setSelectedClient(null);
+    setSelectedVendedor(null);
     setClienteForm(EMPTY_CLIENT_FORM);
     setFormErrors({});
     setDeliveryDate('');
@@ -172,22 +187,68 @@ export default function CarritoPage() {
     }
   };
 
-  const handleFinalizeSale = () => {
+  const loadEmpleados = useCallback(async () => {
+    try {
+      const { data } = await api.get('/empleados');
+      setEmpleados(data.data || []);
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Error al cargar empleados.' });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (checkoutOpen) loadEmpleados();
+  }, [checkoutOpen, loadEmpleados]);
+
+  const handleFinalizeSale = async () => {
     if (!selectedClient) {
       setMessage({ type: 'error', text: 'Selecciona o crea un cliente antes de continuar.' });
+      return;
+    }
+    if (!selectedVendedor) {
+      setMessage({ type: 'error', text: 'Selecciona un vendedor antes de finalizar la venta.' });
       return;
     }
     if (!deliveryDate || !deliveryTime) {
       setMessage({ type: 'error', text: 'Selecciona la fecha y la hora de entrega.' });
       return;
     }
+
     const totalConDomicilio = totalValor + (Number(clienteForm.valor_domicilio) || 0);
-    const entrega = `${deliveryDate} ${deliveryTime}`;
-    setMessage({ type: 'success', text: `Venta lista para ${selectedClient.nombre}. Total: $${totalConDomicilio.toLocaleString('es-CO')}. Entrega: ${entrega}.` });
-    setCheckoutOpen(false);
+    const payload = {
+      id_cliente: selectedClient.id_cliente,
+      id_empleado_comision: selectedVendedor,
+      fecha_entrega: deliveryDate,
+      hora_entrega: deliveryTime,
+      valor_factura: totalConDomicilio,
+      valor_domicilio: Number(clienteForm.valor_domicilio) || 0,
+      observaciones: clienteForm.observaciones?.trim() || null,
+    };
+
+    setSavingVenta(true);
+    try {
+      const { data } = await api.post('/ventas', payload);
+      const ventaId = data?.data?.id_venta;
+      const vendedor = empleados.find(e => e.id_empleado === selectedVendedor);
+      setMessage({
+        type: 'success',
+        text: `Venta guardada correctamente${ventaId ? ` (ID ${ventaId})` : ''}. Vendedor: ${vendedor?.nombre || ''}.`,
+      });
+      setCheckoutOpen(false);
+      setPreviewOpen(false);
+    } catch (error) {
+      console.error('[SALE_SAVE_ERROR]', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Error al guardar la venta en el servidor.',
+      });
+    } finally {
+      setSavingVenta(false);
+    }
   };
 
-  const generatePDF = async (type) => {
+  const createPdfDocument = async () => {
     try {
       const element = previewModalRef.current;
       if (!element) {
@@ -195,7 +256,7 @@ export default function CarritoPage() {
         return null;
       }
 
-      const contentDiv = element.querySelector('.p-8');
+      const contentDiv = element.querySelector('.invoice-pdf-content');
       if (!contentDiv) {
         setMessage({ type: 'error', text: 'Estructura de documento inválida' });
         return null;
@@ -208,16 +269,81 @@ export default function CarritoPage() {
         allowTaint: true,
       });
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      const pdf = new jsPDF('p', 'mm', 'letter');
+      const pageWidth = 216;
+      const pageHeight = 279;
+      const margin = 10;
+      const maxWidth = pageWidth - margin * 2;
+      const maxHeight = pageHeight - margin * 2;
+      const ratio = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
+      const imgWidth = canvas.width * ratio;
+      const imgHeight = canvas.height * ratio;
+      const x = (pageWidth - imgWidth) / 2;
+      const y = (pageHeight - imgHeight) / 2;
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
 
-      return pdf.output('dataurlstring');
+      return pdf;
     } catch (error) {
       console.error('[PDF_ERROR]', error);
       setMessage({ type: 'error', text: `Error al generar PDF: ${error.message}` });
       return null;
+    }
+  };
+
+  const generatePDF = async (type) => {
+    const pdf = await createPdfDocument();
+    if (!pdf) return null;
+    return pdf.output('dataurlstring');
+  };
+
+  const saveDocument = async () => {
+    if (!selectedClient?.nombre) {
+      setMessage({ type: 'error', text: 'Selecciona un cliente antes de guardar el documento.' });
+      return;
+    }
+
+    const pdf = await createPdfDocument();
+    if (!pdf) return;
+
+    const now = new Date();
+    const dateString = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
+    const clientNameSlug = selectedClient.nombre
+      .trim()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase() || 'cliente';
+    const filename = `${clientNameSlug}_${dateString}.pdf`;
+
+    const driveFolderUrl = 'https://drive.google.com/drive/folders/1EBHAc5wdxi478Xpdxv0I-OZuM0o3h3Cf';
+    const popup = window.open(driveFolderUrl, '_blank');
+
+    if (!popup) {
+      setMessage({
+        type: 'error',
+        text: 'No se pudo abrir Drive. Habilita ventanas emergentes en tu navegador e inténtalo de nuevo.',
+      });
+      return;
+    }
+
+    popup.focus();
+    const pdfBase64 = pdf.output('dataurlstring');
+
+    try {
+      pdf.save(filename);
+      await api.post('/documents/upload', { filename, pdfBase64 });
+
+      setMessage({
+        type: 'success',
+        text: `Documento descargado como ${filename} y se abrió la carpeta de Drive.`,
+      });
+    } catch (error) {
+      console.error('[UPLOAD_DRIVE_ERROR]', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.error || 'Error al guardar el documento en el servidor.',
+      });
     }
   };
 
@@ -415,6 +541,9 @@ export default function CarritoPage() {
           deliveryTime={deliveryTime}
           totalValor={totalValor}
           items={items}
+          empleados={empleados}
+          selectedVendedor={selectedVendedor}
+          onVendedorChange={setSelectedVendedor}
           onSearch={searchClientes}
           onSelectCliente={handleSelectCliente}
           onFieldChange={setClienteField}
@@ -422,8 +551,6 @@ export default function CarritoPage() {
           onDeliveryTimeChange={setDeliveryTime}
           onCreateCliente={handleCreateCliente}
           onFinalize={handleFinalizeSale}
-          previewOpen={previewOpen}
-          setPreviewOpen={setPreviewOpen}
           onReset={() => {
             setSelectedClient(null);
             setClienteForm(EMPTY_CLIENT_FORM);
@@ -431,6 +558,10 @@ export default function CarritoPage() {
             setMessage(null);
           }}
           message={message}
+          savingVenta={savingVenta}
+          previewOpen={previewOpen}
+          setPreviewOpen={setPreviewOpen}
+          setPreviewDocumentType={setPreviewDocumentType}
           sendingWhatsapp={sendingWhatsapp}
         />
       )}
@@ -441,11 +572,18 @@ export default function CarritoPage() {
           open={previewOpen}
           onClose={() => setPreviewOpen(false)}
           selectedClient={selectedClient}
+          clienteForm={clienteForm}
           items={items}
           totalValor={totalValor}
           valorDomicilio={Number(clienteForm.valor_domicilio) || 0}
           deliveryDate={deliveryDate}
           deliveryTime={deliveryTime}
+          documentType={previewDocumentType}
+          onSend={sendToWhatsApp}
+          onSave={saveDocument}
+          onSaveSale={handleFinalizeSale}
+          sendingWhatsapp={sendingWhatsapp}
+          savingVenta={savingVenta}
         />
       )}
     </AppLayout>
@@ -453,13 +591,14 @@ export default function CarritoPage() {
 }
 
 function CheckoutModal({
-  open, onClose, query, setQuery, clientes, loadingSearch,
+  open, onClose, query, setQuery, clientes = [], loadingSearch,
   selectedClient, clienteForm, formErrors, savingCliente,
-  deliveryDate, deliveryTime, totalValor, items,
+  deliveryDate, deliveryTime, totalValor, items = [],
+  empleados = [], selectedVendedor, onVendedorChange,
   onSearch, onSelectCliente, onFieldChange,
   onDeliveryDateChange, onDeliveryTimeChange,
   onCreateCliente, onFinalize, onReset, message,
-  previewOpen, setPreviewOpen, sendingWhatsapp,
+  savingVenta, previewOpen, setPreviewOpen, setPreviewDocumentType, sendingWhatsapp,
 }) {
   if (!open) return null;
   return (
@@ -626,6 +765,30 @@ function CheckoutModal({
                 </div>
               </div>
 
+              <div className="rounded-3xl border border-dashed p-4" style={{ borderColor:C.border, backgroundColor:'#f8faf4' }}>
+                <p className="text-xs font-bold uppercase mb-3" style={{ color:C.textSub }}>Vendedor</p>
+                {empleados.length === 0 ? (
+                  <p className="text-sm text-slate-500">Cargando vendedores...</p>
+                ) : (
+                  <>
+                    <select
+                      value={selectedVendedor || ''}
+                      onChange={e => onVendedorChange(Number(e.target.value))}
+                      className="w-full px-4 py-3 rounded-2xl border text-sm outline-none"
+                      style={{ borderColor:C.border, backgroundColor:C.container }}
+                    >
+                      <option value="" disabled>Selecciona un vendedor</option>
+                      {empleados.map((empleado) => (
+                        <option key={empleado.id_empleado} value={empleado.id_empleado}>
+                          {empleado.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-3 text-xs text-slate-500">El vendedor se guarda como metadato de la venta y no aparecerá en el PDF.</p>
+                  </>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-500">Observaciones</label>
                 <textarea value={clienteForm.observaciones}
@@ -691,24 +854,22 @@ function CheckoutModal({
 
               <div className="flex flex-col gap-3 pt-2">
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button type="button" onClick={() => setPreviewOpen(true)}
+                  <button type="button" onClick={() => { setPreviewDocumentType('invoice'); setPreviewOpen(true); }}
                     className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
                     style={{ backgroundColor:C.container, color:C.primary, border:`1px solid ${C.border}` }}>
                     👁️ Vista previa
                   </button>
                   <button type="button"
-                    onClick={() => { setPreviewOpen(true); setTimeout(() => sendToWhatsApp('quotation'), 300); }}
-                    disabled={sendingWhatsapp}
-                    className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
+                    onClick={() => { setPreviewDocumentType('quotation'); setPreviewOpen(true); }}
+                    className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
                     style={{ backgroundColor:'#25D366', color:C.white }}>
-                    {sendingWhatsapp ? '⏳ Enviando…' : '💬 Cotizar'}
+                    💬 Cotizar
                   </button>
                   <button type="button"
-                    onClick={() => { setPreviewOpen(true); setTimeout(() => sendToWhatsApp('invoice'), 300); }}
-                    disabled={sendingWhatsapp}
-                    className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
-                    style={{ backgroundColor:'#25D366', color:C.white }}>
-                    {sendingWhatsapp ? '⏳ Enviando…' : '💬 Facturar'}
+                    onClick={() => { setPreviewDocumentType('invoice'); setPreviewOpen(true); }}
+                    className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
+                    style={{ backgroundColor:'#0B7EDB', color:C.white }}>
+                    🧾 Facturar
                   </button>
                 </div>
                 <button type="submit" disabled={savingCliente}
@@ -717,9 +878,10 @@ function CheckoutModal({
                   {savingCliente ? 'Creando cliente…' : 'Crear cliente'}
                 </button>
                 <button type="button" onClick={onFinalize}
-                  className="w-full py-3 rounded-2xl text-sm font-semibold"
+                  disabled={savingVenta}
+                  className="w-full py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
                   style={{ backgroundColor:'#444939', color:C.white }}>
-                  ✅ Finalizar venta
+                  {savingVenta ? 'Guardando venta…' : '✅ Finalizar venta'}
                 </button>
               </div>
             </form>
@@ -731,104 +893,170 @@ function CheckoutModal({
 }
 
 // ── MODAL: VISTA PREVIA DE FACTURA ────────────────────────────────────────────
-const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, items, totalValor, valorDomicilio, deliveryDate, deliveryTime }, ref) => {
+const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteForm = {}, items, totalValor, valorDomicilio, deliveryDate, deliveryTime, documentType, onSend, onSave, onSaveSale, sendingWhatsapp, savingVenta }, ref) => {
   if (!open) return null;
+  const previewClient = { ...(selectedClient || {}), ...clienteForm };
   const totalFinal = totalValor + valorDomicilio;
+  const label = documentType === 'quotation' ? 'COTIZACIÓN' : 'FACTURA';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-         style={{ backgroundColor:'rgba(26,28,21,0.6)' }}>
-      <div ref={ref} className="w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl bg-white"
-           style={{ maxHeight:'92vh', overflowY:'auto' }}>
-        <div className="p-8 bg-gradient-to-b" style={{ background:`linear-gradient(135deg, ${C.primary}, ${C.primary2})` }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-extrabold text-white">FACTURA</h1>
-              <p className="text-sm text-white opacity-80">Lili y su Sazón Completa</p>
+         style={{ backgroundColor: 'rgba(26,28,21,0.6)' }}>
+      <div ref={ref}
+           className="w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl bg-white"
+           style={{ maxHeight: '92vh', overflowY: 'auto' }}>
+        <div className="invoice-pdf-content" style={{ maxWidth: 780, margin: '0 auto', fontSize: '0.92rem' }}>
+          <div className="p-8 bg-gradient-to-b"
+               style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primary2})` }}>
+            <div className="flex items-center justify-between gap-4">
+              <img src={logoLili}
+                   alt="Logo Lili y su Sazón Completa"
+                   className="w-20 h-20 rounded-2xl object-cover bg-white p-2" />
+              <div>
+                <h1 className="text-xl font-extrabold text-white">{label}</h1>
+                <p className="text-sm text-white opacity-80">Lili y su Sazón Completa</p>
+                <div className="mt-2 text-xs text-white/90 leading-5">
+                  <p>Teléfono: (+57) 3177719249</p>
+                  <p>Dirección: Calle 112 # 51A-15</p>
+                  <p>Medellín-Antioquia</p>
+                </div>
+              </div>
+              <button type="button" onClick={onClose}
+                      className="w-10 h-10 rounded-xl text-xl font-bold text-white"
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                ×
+              </button>
             </div>
-            <button onClick={onClose}
-              className="w-10 h-10 rounded-xl text-xl font-bold text-white"
-              onMouseEnter={e=>e.currentTarget.style.backgroundColor='rgba(255,255,255,0.2)'}
-              onMouseLeave={e=>e.currentTarget.style.backgroundColor='transparent'}>
-              ×
-            </button>
+          </div>
+
+          <div className="p-8 space-y-6">
+            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+              <div className="rounded-3xl border p-4" style={{ borderColor: C.border, backgroundColor: '#F7FAF3' }}>
+                <p className="text-xs font-bold uppercase" style={{ color: C.textSub }}>Cliente</p>
+                <p className="text-lg font-bold mt-1" style={{ color: C.text }}>{previewClient?.nombre || ''}</p>
+                {previewClient?.telefono && (
+                  <p className="text-sm" style={{ color: C.textMuted }}>{previewClient.telefono}</p>
+                )}
+                {previewClient?.telefono_alt && (
+                  <p className="text-sm" style={{ color: C.textMuted }}>Teléfono alterno: {previewClient.telefono_alt}</p>
+                )}
+                {previewClient?.nit_cc && (
+                  <p className="text-sm" style={{ color: C.textMuted }}>NIT/CC: {previewClient.nit_cc}</p>
+                )}
+                {previewClient?.direccion_principal && (
+                  <p className="text-sm" style={{ color: C.textMuted }}>{previewClient.direccion_principal}</p>
+                )}
+                {previewClient?.direccion_alterna && (
+                  <p className="text-sm" style={{ color: C.textMuted }}>Dirección alterna: {previewClient.direccion_alterna}</p>
+                )}
+                {previewClient?.observaciones && (
+                  <p className="text-sm mt-2 font-medium" style={{ color: C.text }}>Observaciones: {previewClient.observaciones}</p>
+                )}
+
+                <div className="mt-4 rounded-3xl border p-4" style={{ borderColor: C.border, backgroundColor: '#FFFFFF' }}>
+                  <p className="text-xs font-bold uppercase mb-2" style={{ color: C.textSub }}>Entrega programada</p>
+                  <p className="text-sm font-semibold" style={{ color: C.text }}>
+                    {deliveryDate} a las {fmtTime12h(deliveryTime)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border p-5 shadow-sm" style={{ borderColor: C.border, backgroundColor: '#EFF8F6' }}>
+                <p className="text-xs font-bold uppercase mb-3" style={{ color: C.primary }}>Información de pago</p>
+                <p className="text-sm leading-7" style={{ color: C.text }}>
+                  <span className="font-semibold">Cuenta de Ahorros Bancolombia</span>
+                  <br />Número: 25300003634
+                  <br />A NOMBRE DE: <span className="font-semibold">CRUZ MARIA VALENCIA CC. 43089544</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Productos */}
+            <div className="mt-6">
+              <p className="text-xs font-bold uppercase mb-3" style={{ color: C.textSub }}>Productos</p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottomColor: C.border, borderBottomWidth: 1 }}>
+                    <th className="text-left py-2 font-bold" style={{ color: C.textSub }}>Descripción</th>
+                    <th className="text-right py-2 font-bold" style={{ color: C.textSub }}>Cant.</th>
+                    <th className="text-right py-2 font-bold" style={{ color: C.textSub }}>V. Unitario</th>
+                    <th className="text-right py-2 font-bold" style={{ color: C.textSub }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id_producto} style={{ borderBottomColor: C.border, borderBottomWidth: 1 }}>
+                      <td className="py-3" style={{ color: C.text }}>{item.nombre}</td>
+                      <td className="text-right py-3" style={{ color: C.text }}>{item.cantidad}</td>
+                      <td className="text-right py-3" style={{ color: C.text }}>{fmtPrecio(item.valor)}</td>
+                      <td className="text-right py-3 font-semibold" style={{ color: C.primary }}>
+                        {fmtPrecio(item.cantidad * item.valor)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totales */}
+            <div className="space-y-2 mt-6">
+              <div className="flex justify-between text-sm">
+                <span style={{ color: C.textMuted }}>Subtotal</span>
+                <span style={{ color: C.text }}>{fmtPrecio(totalValor)}</span>
+              </div>
+              {valorDomicilio > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: C.textMuted }}>Domicilio</span>
+                  <span style={{ color: C.text }}>{fmtPrecio(valorDomicilio)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-lg font-bold py-3"
+                   style={{ borderTopColor: C.border, borderTopWidth: 2, borderBottomColor: C.border, borderBottomWidth: 2 }}>
+                <span style={{ color: C.textSub }}>TOTAL</span>
+                <span style={{ color: C.primary }}>{fmtPrecio(totalFinal)}</span>
+              </div>
+            </div>
+
+            <div className="mt-8 rounded-3xl border p-4" style={{ borderColor: C.border, backgroundColor: '#f7faf3' }}>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: C.textSub }}>Instrucciones de pago</p>
+              <p className="text-sm leading-6" style={{ color: C.text }}>
+                Transfiere el 50% del valor total a la cuenta de ahorros Bancolombia  #25300003634 A NOMBRE DE: CRUZ MARIA VALENCIA.
+              </p>
+              <p className="mt-3 text-sm leading-6" style={{ color: C.text }}>
+                Envia el comprobante y confirma tu pedido por WhatsApp al +57 3177719249.
+              </p>
+            </div>
+            <div className="mt-4 text-center">
+              <p className="text-sm font-semibold" style={{ color: C.primary }}>¡Gracias por tu compra!</p>
+              <p className="text-xs text-slate-500 mt-2">Contacto: WhatsApp +57 3177719249 · Calle 112 # 51A-15 · Medellín, Antioquia</p>
+            </div>
           </div>
         </div>
 
-        <div className="p-8 space-y-6">
-          {/* Cliente */}
-          <div>
-            <p className="text-xs font-bold uppercase" style={{ color:C.textSub }}>Cliente</p>
-            <p className="text-lg font-bold mt-1" style={{ color:C.text }}>{selectedClient.nombre}</p>
-            <p className="text-sm" style={{ color:C.textMuted }}>{selectedClient.telefono}</p>
-            <p className="text-sm" style={{ color:C.textMuted }}>{selectedClient.direccion_principal}</p>
-          </div>
-
-          {/* Productos */}
-          <div>
-            <p className="text-xs font-bold uppercase mb-3" style={{ color:C.textSub }}>Productos</p>
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottomColor:C.border, borderBottomWidth:1 }}>
-                  <th className="text-left py-2 font-bold" style={{ color:C.textSub }}>Descripción</th>
-                  <th className="text-right py-2 font-bold" style={{ color:C.textSub }}>Cant.</th>
-                  <th className="text-right py-2 font-bold" style={{ color:C.textSub }}>V. Unitario</th>
-                  <th className="text-right py-2 font-bold" style={{ color:C.textSub }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(item => (
-                  <tr key={item.id_producto} style={{ borderBottomColor:C.border, borderBottomWidth:1 }}>
-                    <td className="py-3" style={{ color:C.text }}>{item.nombre}</td>
-                    <td className="text-right py-3" style={{ color:C.text }}>{item.cantidad}</td>
-                    <td className="text-right py-3" style={{ color:C.text }}>{fmtPrecio(item.valor)}</td>
-                    <td className="text-right py-3 font-semibold" style={{ color:C.primary }}>
-                      {fmtPrecio(item.cantidad * item.valor)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Totales */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span style={{ color:C.textMuted }}>Subtotal</span>
-              <span style={{ color:C.text }}>{fmtPrecio(totalValor)}</span>
-            </div>
-            {valorDomicilio > 0 && (
-              <div className="flex justify-between text-sm">
-                <span style={{ color:C.textMuted }}>Domicilio</span>
-                <span style={{ color:C.text }}>{fmtPrecio(valorDomicilio)}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-lg font-bold py-3"
-                 style={{ borderTopColor:C.border, borderTopWidth:2, borderBottomColor:C.border, borderBottomWidth:2 }}>
-              <span style={{ color:C.textSub }}>TOTAL</span>
-              <span style={{ color:C.primary }}>{fmtPrecio(totalFinal)}</span>
-            </div>
-          </div>
-
-          {/* Entrega */}
-          <div>
-            <p className="text-xs font-bold uppercase" style={{ color:C.textSub }}>Entrega programada</p>
-            <p className="text-sm font-semibold mt-1" style={{ color:C.text }}>
-              {deliveryDate} a las {deliveryTime}
-            </p>
-          </div>
-
-          {/* Botones */}
-          <div className="flex gap-3 pt-4">
+        <div className="p-8 bg-white">
+          <div className="flex gap-3 pt-4 flex-col sm:flex-row">
             <button onClick={onClose}
-              className="flex-1 py-3 rounded-2xl text-sm font-semibold"
-              style={{ backgroundColor:C.container, color:C.textSub }}>
+                    className="flex-1 py-3 rounded-2xl text-sm font-semibold"
+                    style={{ backgroundColor: C.container, color: C.textSub }}>
               Cerrar
             </button>
-            <button onClick={() => window.print()}
-              className="flex-1 py-3 rounded-2xl text-sm font-semibold"
-              style={{ backgroundColor:C.primary, color:C.white }}>
-              🖨️ Imprimir
+            <button type="button" onClick={() => onSend(documentType)}
+                    disabled={sendingWhatsapp}
+                    className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
+                    style={{ backgroundColor: '#25D366', color: C.white }}>
+              {sendingWhatsapp ? '⏳ Enviando…' : 'Enviar a WhatsApp'}
+            </button>
+            <button type="button" onClick={onSaveSale}
+                    disabled={savingVenta}
+                    className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
+                    style={{ backgroundColor: '#22C55E', color: C.white }}>
+              {savingVenta ? 'Guardando venta…' : 'Guardar Venta'}
+            </button>
+            <button type="button" onClick={onSave}
+                    className="flex-1 py-3 rounded-2xl text-sm font-semibold"
+                    style={{ backgroundColor: '#0B7EDB', color: C.white }}>
+              Guardar en Drive
             </button>
           </div>
         </div>
@@ -861,7 +1089,7 @@ function CartRow({ item, onInc, onDec, onChange, onRemove }) {
               {item.tipo_nombre} · {item.presentacion}
             </p>
           </div>
-          <button onClick={onRemove}
+          <button type="button" onClick={onRemove}
             className="px-2 py-1 rounded-lg text-xs font-bold transition-colors flex-shrink-0"
             style={{ backgroundColor:'transparent', color:C.error }}
             onMouseEnter={e=>e.currentTarget.style.backgroundColor=C.errorBg}
@@ -875,7 +1103,7 @@ function CartRow({ item, onInc, onDec, onChange, onRemove }) {
           {/* Selector de cantidad */}
           <div className="flex items-center gap-1 rounded-lg overflow-hidden"
                style={{ border:`1.5px solid ${C.border}` }}>
-            <button onClick={onDec}
+            <button type="button" onClick={onDec}
               className="w-8 h-8 flex items-center justify-center text-lg font-bold transition-colors"
               style={{ color:C.primary, backgroundColor:C.white }}
               onMouseEnter={e=>e.currentTarget.style.backgroundColor=C.container}
@@ -886,7 +1114,7 @@ function CartRow({ item, onInc, onDec, onChange, onRemove }) {
               onChange={e => onChange(e.target.value)}
               className="w-10 text-center text-sm font-bold outline-none"
               style={{ color:C.text, backgroundColor:C.white }}/>
-            <button onClick={onInc}
+            <button type="button" onClick={onInc}
               className="w-8 h-8 flex items-center justify-center text-lg font-bold transition-colors"
               style={{ color:C.primary, backgroundColor:C.white }}
               onMouseEnter={e=>e.currentTarget.style.backgroundColor=C.container}

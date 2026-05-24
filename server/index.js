@@ -6,6 +6,9 @@ import authRoutes       from './routes/authRoutes.js';
 import productosRoutes  from './routes/productosRoutes.js';
 import clientesRoutes   from './routes/clientesRoutes.js';
 import whatsappRoutes   from './routes/whatsappRoutes.js';
+import documentRoutes   from './routes/documentRoutes.js';
+import empleadosRoutes  from './routes/empleadosRoutes.js';
+import ventasRoutes     from './routes/ventasRoutes.js';
 import { testConnection } from './config/db.js';
 import tipoProductoRoutes from "./routes/tipoProductoRoutes.js";
 import path from 'path';
@@ -58,6 +61,9 @@ app.use('/api/auth',      authRoutes);
 app.use('/api/productos', productosRoutes);
 app.use('/api/clientes',  clientesRoutes);
 app.use('/api/whatsapp',  whatsappRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/ventas',     ventasRoutes);
+app.use('/api/empleados', empleadosRoutes);
 app.use("/api/tipo-producto", tipoProductoRoutes);
 app.use(
   '/uploads',

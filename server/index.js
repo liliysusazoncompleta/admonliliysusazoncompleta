@@ -8,6 +8,7 @@ import clientesRoutes   from './routes/clientesRoutes.js';
 import whatsappRoutes   from './routes/whatsappRoutes.js';
 import documentRoutes   from './routes/documentRoutes.js';
 import empleadosRoutes  from './routes/empleadosRoutes.js';
+import usuariosRoutes   from './routes/usuariosRoutes.js';
 import ventasRoutes     from './routes/ventasRoutes.js';
 import { testConnection } from './config/db.js';
 import tipoProductoRoutes from "./routes/tipoProductoRoutes.js";
@@ -64,6 +65,7 @@ app.use('/api/whatsapp',  whatsappRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ventas',     ventasRoutes);
 app.use('/api/empleados', empleadosRoutes);
+app.use('/api/usuarios',  usuariosRoutes);
 app.use("/api/tipo-producto", tipoProductoRoutes);
 app.use(
   '/uploads',

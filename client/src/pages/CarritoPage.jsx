@@ -72,6 +72,7 @@ export default function CarritoPage() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [empleados, setEmpleados] = useState([]);
   const [selectedVendedor, setSelectedVendedor] = useState(null);
+  const [commissionPercentage, setCommissionPercentage] = useState(0);
   const [clienteForm, setClienteForm] = useState(EMPTY_CLIENT_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -91,6 +92,7 @@ export default function CarritoPage() {
     setClientes([]);
     setSelectedClient(null);
     setSelectedVendedor(null);
+    setCommissionPercentage(0);
     setClienteForm(EMPTY_CLIENT_FORM);
     setFormErrors({});
     setDeliveryDate('');
@@ -105,6 +107,12 @@ export default function CarritoPage() {
 
   const handleCloseCheckout = () => {
     setCheckoutOpen(false);
+  };
+
+  const handleVendedorChange = (id) => {
+    setSelectedVendedor(id);
+    const empleado = empleados.find(e => e.id_empleado === id);
+    setCommissionPercentage(Number(empleado?.porcentaje_comision || 0));
   };
 
   const searchClientes = useCallback(async () => {
@@ -216,12 +224,15 @@ export default function CarritoPage() {
     }
 
     const totalConDomicilio = totalValor + (Number(clienteForm.valor_domicilio) || 0);
+    const porcentajeComision = Number(commissionPercentage || 0);
+    const valorComision = Math.round(totalValor * (porcentajeComision / 100) * 100) / 100;
     const payload = {
       id_cliente: selectedClient.id_cliente,
       id_empleado_comision: selectedVendedor,
       fecha_entrega: deliveryDate,
-      hora_entrega: deliveryTime,
       valor_factura: totalConDomicilio,
+      porcentaje_comision: porcentajeComision,
+      valor_comision: valorComision,
       valor_domicilio: Number(clienteForm.valor_domicilio) || 0,
       observaciones: clienteForm.observaciones?.trim() || null,
     };
@@ -543,7 +554,9 @@ export default function CarritoPage() {
           items={items}
           empleados={empleados}
           selectedVendedor={selectedVendedor}
-          onVendedorChange={setSelectedVendedor}
+          commissionPercentage={commissionPercentage}
+          onCommissionPercentageChange={setCommissionPercentage}
+          onVendedorChange={handleVendedorChange}
           onSearch={searchClientes}
           onSelectCliente={handleSelectCliente}
           onFieldChange={setClienteField}
@@ -594,13 +607,15 @@ function CheckoutModal({
   open, onClose, query, setQuery, clientes = [], loadingSearch,
   selectedClient, clienteForm, formErrors, savingCliente,
   deliveryDate, deliveryTime, totalValor, items = [],
-  empleados = [], selectedVendedor, onVendedorChange,
+  empleados = [], selectedVendedor, commissionPercentage, onCommissionPercentageChange, onVendedorChange,
   onSearch, onSelectCliente, onFieldChange,
   onDeliveryDateChange, onDeliveryTimeChange,
   onCreateCliente, onFinalize, onReset, message,
   savingVenta, previewOpen, setPreviewOpen, setPreviewDocumentType, sendingWhatsapp,
 }) {
   if (!open) return null;
+  const porcentajeComision = Number(commissionPercentage || 0);
+  const valorComision = Math.round(totalValor * (porcentajeComision / 100) * 100) / 100;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
          style={{ backgroundColor:'rgba(26,28,21,0.6)' }}>
@@ -784,6 +799,27 @@ function CheckoutModal({
                         </option>
                       ))}
                     </select>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-slate-500">Porcentaje de comisión</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.1"
+                          value={commissionPercentage}
+                          onChange={e => onCommissionPercentageChange(Number(e.target.value || 0))}
+                          className="w-full px-4 py-3 rounded-2xl border text-sm bg-white outline-none"
+                          style={{ borderColor:C.border, color:C.text }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-slate-500">Valor de la comisión</label>
+                        <input value={fmtPrecio(valorComision)} readOnly
+                          className="w-full px-4 py-3 rounded-2xl border text-sm bg-slate-100 outline-none"
+                          style={{ borderColor:C.border, color:C.text }} />
+                      </div>
+                    </div>
                     <p className="mt-3 text-xs text-slate-500">El vendedor se guarda como metadato de la venta y no aparecerá en el PDF.</p>
                   </>
                 )}

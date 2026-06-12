@@ -21,9 +21,18 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 
 ## ✨ Últimas modificaciones implementadas
 
+- ✅ **Módulo Empleados**: Visualización, creación, actualización y activación/desactivación de empleados con CRUD completo.
+- ✅ **Módulo Usuarios**: Gestión completa de usuarios del sistema con roles (admin, operador, cocinero) y control de acceso.
+- ✅ **Módulo Ventas** (v2): Visualización de todas las ventas registradas con filtros avanzados:
+  - Filtros separados por **año** y **mes** para mayor flexibilidad.
+  - Filtros por vendedor y estado de venta.
+  - **Tres estados de venta**: entregada, pendiente, cancelada.
+  - Cambio dinámico de estado con ciclo: entregada → pendiente → cancelada → entregada.
+  - Resumen de totales, comisiones y estadísticas de entregas.
+  - Campo `estado` (CHARACTER VARYING) en lugar de `entregada` booleano para mayor control.
+- ✅ **Remoción del campo `hora_entrega` de la tabla de ventas**: El campo de hora ya no se guarda en la base de datos. Solo `fecha_entrega` se persiste ahora.
 - La factura en vista previa ahora muestra cualquier campo de cliente diligenciado en el formulario, aún si no está guardado en la base de datos.
 - El documento PDF se genera en tamaño `letter` y se escala para que el contenido se visualice mejor en una sola página.
-- El horario de entrega en la factura se muestra en formato de 12 horas (`AM/PM`).
 - El nombre del archivo PDF se genera con el cliente y la fecha: `nombrecliente_yyyymmdd.pdf`.
 - Los datos adicionales de cliente (`teléfono alterno`, `NIT/CC`, `dirección alterna`, `observaciones`) se muestran en la factura siempre que estén disponibles.
 
@@ -84,8 +93,9 @@ admonliliysusazoncompleta/
 
 ## 🔐 Roles del sistema
 
-- `ADMIN` — acceso completo a todos los módulos.
-- `VENTAS` — acceso a clientes, productos, ventas y facturación.
+- `admin` — acceso completo a todos los módulos incluida administración.
+- `operador` — acceso a gestión de ventas, clientes y productos.
+- `cocinero` — acceso limitado a gestión de producción.
 
 ---
 
@@ -112,36 +122,29 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 | Campo | Tipo | Descripción |
 |---|---|---|
 | id_empleado | SERIAL PK | Clave primaria |
-| nombres | VARCHAR(150) | Nombres del empleado |
-| apellidos | VARCHAR(150) | Apellidos del empleado |
-| documento | VARCHAR(30) | Documento único |
+| nombre | VARCHAR(150) | Nombre completo del empleado |
+| cedula | VARCHAR(30) | Cédula única del empleado |
 | telefono | VARCHAR(20) | Teléfono único |
-| correo | VARCHAR(150) | Correo único |
-| direccion | TEXT | Dirección |
 | cargo | VARCHAR(100) | Cargo o función |
-| porcentaje_comision | NUMERIC(5,2) | Comisión del empleado |
-| observaciones | TEXT | Observaciones internas |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | INT | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | INT | Usuario actualizador |
-| activo | BOOLEAN | Eliminación lógica |
+| salario | NUMERIC(14,2) | Salario del empleado |
+| direccion_principal | TEXT | Dirección principal |
+| direccion_alterna | TEXT | Dirección alternativa |
+| activo | BOOLEAN | Empleado activo |
 
 #### `public.usuarios`
 | Campo | Tipo | Descripción |
 |---|---|---|
 | id_usuario | SERIAL PK | Clave primaria |
 | id_empleado | INT | Referencia a `empleados` |
-| nombres | VARCHAR(150) | Nombre de usuario |
-| correo | VARCHAR(150) | Correo de acceso único |
-| password_hash | TEXT | Hash bcrypt |
-| rol | VARCHAR(20) | `ADMIN` o `VENTAS` |
+| correo | VARCHAR(255) | Correo de acceso único |
+| password_hash | VARCHAR(255) | Hash bcrypt |
+| rol | VARCHAR(50) | Rol: admin, operador, cocinero, cliente |
 | ultimo_login | TIMESTAMP | Último inicio de sesión |
 | created_at | TIMESTAMP | Fecha creación |
 | created_by | INT | Usuario creador |
 | updated_at | TIMESTAMP | Fecha actualización |
 | updated_by | INT | Usuario actualizador |
-| activo | BOOLEAN | Cuenta activa |
+| activo | BOOLEAN | Usuario activo |
 
 #### `public.clientes`
 | Campo | Tipo | Descripción |
@@ -198,12 +201,12 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 | id_empleado_comision | INT | Referencia a `empleados` |
 | fecha_factura | DATE | Fecha de factura |
 | fecha_entrega | DATE | Fecha de entrega |
-| hora_entrega | TIME | Hora de entrega |
-| valor_factura | NUMERIC(14,2) | Total factura |
-| porcentaje_comision | NUMERIC(5,2) | % de comisión |
-| valor_comision | NUMERIC(14,2) | Valor comisión |
-| valor_domicilio | NUMERIC(14,2) | Valor de domicilio |
+| valor_factura | NUMERIC | Total factura |
+| porcentaje_comision | NUMERIC | % de comisión |
+| valor_comision | NUMERIC | Valor comisión |
+| valor_domicilio | NUMERIC | Valor de domicilio |
 | observaciones | TEXT | Notas de la venta |
+| estado | CHARACTER VARYING | Estado: 'entregada', 'pendiente', 'cancelada' |
 | created_at | TIMESTAMP | Fecha creación |
 | created_by | INT | Usuario creador |
 | updated_at | TIMESTAMP | Fecha actualización |
@@ -214,7 +217,7 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 
 - Todas las tablas contienen auditoría: `created_at`, `created_by`, `updated_at`, `updated_by`, `activo`.
 - La eliminación lógica se gestiona con `activo = false`.
-- Los usuarios se asocian opcionalmente a empleados.
+- Los usuarios se asocian a empleados mediante `id_empleado`.
 - Los clientes requieren teléfono único y admiten NIT opcional.
 
 ---
@@ -393,11 +396,70 @@ node scripts/check.js
 
 ---
 
+## 📄 Características por módulo
+
+### 📊 Dashboard
+- Visualización de estadísticas generales
+- Acceso rápido a todos los módulos
+
+### 👥 Gestión de Empleados
+- ✅ Visualizar lista completa de empleados
+- ✅ Crear nuevos empleados con datos personales (cédula, teléfono, cargo, salario, direcciones)
+- ✅ Editar información de empleados existentes
+- ✅ Activar/desactivar empleados (soft delete)
+- ✅ Filtrar empleados (búsqueda por nombre, cédula, teléfono)
+- ✅ Mostrar estado activo/inactivo
+
+### 🔐 Gestión de Usuarios
+- ✅ Visualizar lista de usuarios del sistema
+- ✅ Crear usuarios con roles diferenciados (admin, operador, cocinero)
+- ✅ Editar información de usuarios
+- ✅ Cambiar contraseñas
+- ✅ Activar/desactivar usuarios
+- ✅ Filtrar usuarios por correo o nombre de empleado
+- ✅ Mostrar último login
+- ✅ Asocación con empleados
+
+### 💰 Gestión de Ventas
+- ✅ Visualizar todas las ventas registradas
+- ✅ Filtrar por año (2025, 2026, etc.)
+- ✅ Filtrar por mes (enero-diciembre)
+- ✅ Filtrar por vendedor/empleado
+- ✅ Filtrar por estado (entregada, pendiente, cancelada)
+- ✅ Cambiar estado de venta con ciclo: entregada → pendiente → cancelada → entregada
+- ✅ Ver resumen de totales:
+  - Total de ventas ($)
+  - Total de comisiones ($)
+  - Cantidad de ventas entregadas vs pendientes
+- ✅ Información detallada por venta (cliente, vendedor, fecha, valor, comisión)
+- ✅ Gestión de 3 estados de venta para mayor control
+
+### 📦 Gestión de Productos
+- Visualizar catálogo completo
+- Crear, editar y eliminar productos
+- Filtrar por tipo de producto
+- Búsqueda por nombre o código
+- Asignación de imágenes
+
+### 👤 Gestión de Clientes
+- Crear, editar y eliminar clientes
+- Información completa (teléfono, dirección, NIT/CC)
+- Búsqueda y filtrado
+
+### 🛒 Carrito de Compras
+- Agregar productos al carrito
+- Gestionar cantidades
+- Generar cotizaciones y facturas en PDF
+- Enviar por WhatsApp
+
+---
+
 ## 📄 Notas
 
 - El backend usa ESM (`import/export`).
 - Las imágenes se guardan localmente en `server/uploads/productos/`.
 - Los productos usan soft delete con `activo = false`.
+- Todos los módulos de administración (Empleados, Usuarios, Ventas) requieren autenticación.
 
 ---
 

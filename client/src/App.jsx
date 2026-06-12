@@ -9,6 +9,9 @@ import DashboardPage          from './pages/DashboardPage.jsx';
 import ProductosPage          from './pages/ProductosPage.jsx';
 import ClientesPage           from './pages/ClientesPage.jsx';
 import CarritoPage            from './pages/CarritoPage.jsx';
+import EmpleadosPage          from './pages/EmpleadosPage.jsx';
+import UsuariosPage           from './pages/UsuariosPage.jsx';
+import VentasPage             from './pages/VentasPage.jsx';
 
 export default function App() {
   return (
@@ -23,6 +26,9 @@ export default function App() {
           <Route path="/productos"       element={<ProtectedRoute><ProductosPage /></ProtectedRoute>} />
           <Route path="/clientes"        element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
           <Route path="/carrito"         element={<ProtectedRoute><CarritoPage /></ProtectedRoute>} />
+          <Route path="/empleados"       element={<ProtectedRoute><EmpleadosPage /></ProtectedRoute>} />
+          <Route path="/usuarios"        element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
+          <Route path="/ventas"          element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />
           <Route path="*"                element={<Navigate to="/login" replace />} />
         </Routes>
       </CartProvider>

@@ -14,6 +14,7 @@ import html2canvas from 'html2canvas';
 import AppLayout from '../components/AppLayout.jsx';
 import { useCart } from '../hooks/useCart.jsx';
 import logoLili from '../assets/LOGO_LILI.jpg';
+import api from '../lib/api.js';
 
 const C = {
   primary:'#476500', primary2:'#5d7f13',
@@ -51,12 +52,12 @@ const EMPTY_CLIENT_FORM = {
   valor_domicilio: 0,
 };
 
-const api = axios.create({ baseURL: '/api' });
-api.interceptors.request.use(cfg => {
+//const api = axios.create({ baseURL: '/api' });
+/*api.interceptors.request.use(cfg => {
   const token = localStorage.getItem('lili_token');
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
   return cfg;
-});
+});*/
 
 export default function CarritoPage() {
   const navigate = useNavigate();

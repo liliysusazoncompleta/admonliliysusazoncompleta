@@ -3,15 +3,15 @@
  * @module client/src/pages/UsuariosPage
  */
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../lib/api.js';
 import AppLayout from '../components/AppLayout.jsx';
 
-const api = axios.create({ baseURL: '/api' });
+/*const api = axios.create({ baseURL: '/api' });
 api.interceptors.request.use(cfg => {
   const t = localStorage.getItem('lili_token');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
-});
+});*/
 
 const C = {
   primary: '#476500', primary2: '#5d7f13',

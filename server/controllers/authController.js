@@ -27,7 +27,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
  */
 const buildTokenPayload = (usuario) => ({
   id_usuario:  usuario.id_usuario,
-  id_empleado: usuario.id_empleado,
+  cedula: usuario.cedula,
   correo:      usuario.correo,
   rol:         usuario.rol,
 });
@@ -53,7 +53,7 @@ export const login = async (req, res) => {
 
     // ── 2. Buscar usuario por correo ───────────────────────────────────────
     const { rows } = await query(
-      `SELECT id_usuario, id_empleado, correo, password_hash, rol,
+      `SELECT id_usuario, cedula, correo, password_hash, rol,
               ultimo_login, created_at, activo
        FROM public.usuarios
        WHERE correo = $1
@@ -112,7 +112,7 @@ export const login = async (req, res) => {
       token,
       usuario: {
         id_usuario:  usuario.id_usuario,
-        id_empleado: usuario.id_empleado,
+        cedula:      usuario.cedula,
         correo:      usuario.correo,
         rol:         usuario.rol,
         ultimo_login: usuario.ultimo_login,
@@ -138,7 +138,7 @@ export const login = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const { rows } = await query(
-      `SELECT id_usuario, id_empleado, correo, rol, ultimo_login, created_at
+      `SELECT id_usuario, cedula, correo, rol, ultimo_login, created_at
        FROM public.usuarios
        WHERE id_usuario = $1 AND activo = true
        LIMIT 1`,

@@ -3,15 +3,15 @@
  * @module client/src/pages/UsuariosPage
  */
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../lib/api.js';
 import AppLayout from '../components/AppLayout.jsx';
 
-const api = axios.create({ baseURL: '/api' });
+/*const api = axios.create({ baseURL: '/api' });
 api.interceptors.request.use(cfg => {
   const t = localStorage.getItem('lili_token');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
-});
+});*/
 
 const C = {
   primary: '#476500', primary2: '#5d7f13',
@@ -46,7 +46,7 @@ export default function UsuariosPage() {
   const { toasts, toast, removeToast } = useToast();
 
   const [formData, setFormData] = useState({
-    id_empleado: '', correo: '', password: '', rol: 'operador'
+    cedula: '', correo: '', password: '', rol: 'operador'
   });
   const [formErrors, setFormErrors] = useState({});
 
@@ -69,14 +69,14 @@ export default function UsuariosPage() {
   }, [fetchUsuarios]);
 
   const resetForm = () => {
-    setFormData({ id_empleado: '', correo: '', password: '', rol: 'operador' });
+    setFormData({ cedula: '', correo: '', password: '', rol: 'operador' });
     setFormErrors({});
     setEditData(null);
   };
 
   const openEdit = (usr) => {
     setEditData(usr);
-    setFormData({ id_empleado: usr.id_empleado, correo: usr.correo, password: '', rol: usr.rol });
+    setFormData({ cedula: usr.cedula, correo: usr.correo, password: '', rol: usr.rol });
     setModalOpen(true);
     setFormErrors({});
   };
@@ -90,7 +90,7 @@ export default function UsuariosPage() {
     const errors = {};
     if (!formData.correo.trim()) errors.correo = 'Requerido';
     if (!editData && !formData.password.trim()) errors.password = 'Requerido';
-    if (!editData && !formData.id_empleado) errors.id_empleado = 'Requerido';
+    if (!editData && !formData.cedula) errors.cedula = 'Requerido';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -256,14 +256,14 @@ export default function UsuariosPage() {
               <div className="space-y-3">
                 {!editData && (
                   <div>
-                    <label className="text-xs font-semibold" style={{ color: C.textMuted }}>ID Empleado *</label>
-                    <input type="number" value={formData.id_empleado} onChange={e => setFormData({ ...formData, id_empleado: e.target.value })}
-                      placeholder="ID del empleado" className="w-full mt-1 px-3 py-2 rounded-lg border"
+                    <label className="text-xs font-semibold" style={{ color: C.textMuted }}>Cédula *</label>
+                    <input type="text" value={formData.cedula} onChange={e => setFormData({ ...formData, cedula: e.target.value })}
+                      placeholder="Cédula del empleado" className="w-full mt-1 px-3 py-2 rounded-lg border"
                       style={{
-                        borderColor: formErrors.id_empleado ? C.error : C.border,
-                        backgroundColor: formErrors.id_empleado ? C.errorBg : C.container
+                        borderColor: formErrors.cedula ? C.error : C.border,
+                        backgroundColor: formErrors.cedula ? C.errorBg : C.container
                       }} />
-                    {formErrors.id_empleado && <p style={{ color: C.error }} className="text-xs mt-1">{formErrors.id_empleado}</p>}
+                    {formErrors.cedula && <p style={{ color: C.error }} className="text-xs mt-1">{formErrors.cedula}</p>}
                   </div>
                 )}
                 <div>
@@ -302,7 +302,8 @@ export default function UsuariosPage() {
                     style={{ borderColor: C.border, backgroundColor: C.container }}>
                     <option value="operador">Operador</option>
                     <option value="admin">Admin</option>
-                    <option value="cocinero">Cocinero</option>
+                    <option value="cocina">Cocina</option>
+                    <option value="ventas">Ventas</option>
                   </select>
                 </div>
               </div>

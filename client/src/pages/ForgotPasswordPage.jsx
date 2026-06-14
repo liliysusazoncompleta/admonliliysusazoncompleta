@@ -4,9 +4,9 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../lib/api.js';
 
-const api = axios.create({ baseURL: '/api' });
+//const api = axios.create({ baseURL: '/api' });
 
 const MailIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

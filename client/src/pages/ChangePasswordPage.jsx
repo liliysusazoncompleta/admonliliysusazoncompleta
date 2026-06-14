@@ -8,9 +8,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../lib/api.js';
 
-const api = axios.create({ baseURL: '/api' });
+//const api = axios.create({ baseURL: '/api' });
 
 // ── Iconos ────────────────────────────────────────────────────────────────────
 const EyeIcon = ({ open }) => open ? (

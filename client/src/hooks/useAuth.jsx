@@ -4,17 +4,9 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+//import axios from 'axios';
+import api from '../lib/api.js';
 
-// ── Instancia de Axios con baseURL del proxy Vite ─────────────────────────────
-const api = axios.create({ baseURL: '/api' });
-
-// ── Interceptor: inyectar JWT en cada petición ────────────────────────────────
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('lili_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 // ── Contexto ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);

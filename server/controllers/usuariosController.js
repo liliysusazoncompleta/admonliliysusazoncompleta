@@ -28,10 +28,10 @@ export const getUsuarios = async (req, res) => {
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 
     const { rows } = await query(
-      `SELECT u.id_usuario, u.id_empleado, u.correo, u.rol, u.ultimo_login,
+      `SELECT u.id_usuario, u.cedula, u.correo, u.rol, u.ultimo_login,
               u.activo, u.created_at, e.nombre AS empleado_nombre
        FROM public.usuarios u
-       LEFT JOIN public.empleados e ON u.id_empleado = e.id_empleado
+       LEFT JOIN public.empleados e ON u.cedula = e.cedula
        ${where}
        ORDER BY u.correo`,
       params
@@ -44,12 +44,12 @@ export const getUsuarios = async (req, res) => {
 
 export const createUsuario = async (req, res) => {
   try {
-    const { id_empleado, correo, password, rol = 'operador' } = req.body;
+    const { cedula, correo, password, rol = 'operador' } = req.body;
 
-    if (!id_empleado || !correo || !password) {
+    if (!cedula || !correo || !password) {
       return res.status(400).json({
         success: false,
-        message: 'id_empleado, correo y password son requeridos.'
+        message: 'cedula, correo y password son requeridos.'
       });
     }
 
@@ -57,10 +57,10 @@ export const createUsuario = async (req, res) => {
 
     const { rows } = await query(
       `INSERT INTO public.usuarios
-        (id_empleado, correo, password_hash, rol, activo)
+        (cedula, correo, password_hash, rol, activo)
        VALUES ($1, $2, $3, $4, true)
-       RETURNING id_usuario, id_empleado, correo, rol, activo, created_at`,
-      [id_empleado, correo, passwordHash, rol]
+       RETURNING id_usuario, cedula, correo, rol, activo, created_at`,
+      [cedula, correo, passwordHash, rol]
     );
 
     res.status(201).json({ success: true, data: rows[0] });
@@ -88,7 +88,7 @@ export const updateUsuario = async (req, res) => {
       `UPDATE public.usuarios
        SET correo = $1, rol = $2
        WHERE id_usuario = $3
-       RETURNING id_usuario, id_empleado, correo, rol, activo`,
+       RETURNING id_usuario, cedula, correo, rol, activo`,
       [correo, rol, id]
     );
 

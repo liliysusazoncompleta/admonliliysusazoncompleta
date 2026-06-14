@@ -246,8 +246,8 @@ export default function CarritoPage() {
         type: 'success',
         text: `Venta guardada correctamente${ventaId ? ` (ID ${ventaId})` : ''}. Vendedor: ${vendedor?.nombre || ''}.`,
       });
-      setCheckoutOpen(false);
-      setPreviewOpen(false);
+     // setCheckoutOpen(false);
+     // setPreviewOpen(false);
     } catch (error) {
       console.error('[SALE_SAVE_ERROR]', error);
       setMessage({
@@ -597,6 +597,8 @@ export default function CarritoPage() {
           onSaveSale={handleFinalizeSale}
           sendingWhatsapp={sendingWhatsapp}
           savingVenta={savingVenta}
+          successMessage={message?.type === 'success' && message?.text?.includes('guardada') ? message.text : null}
+          onDismissSuccess={() => setMessage(null)}
         />
       )}
     </AppLayout>
@@ -913,7 +915,7 @@ function CheckoutModal({
                   style={{ backgroundColor:C.primary, color:C.white }}>
                   {savingCliente ? 'Creando cliente…' : 'Crear cliente'}
                 </button>
-                <button type="button" onClick={onFinalize}
+                <button type="button" onClick={() => { onFinalize(); onClose(); }}
                   disabled={savingVenta}
                   className="w-full py-3 rounded-2xl text-sm font-semibold transition-all disabled:opacity-60"
                   style={{ backgroundColor:'#444939', color:C.white }}>
@@ -929,13 +931,15 @@ function CheckoutModal({
 }
 
 // ── MODAL: VISTA PREVIA DE FACTURA ────────────────────────────────────────────
-const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteForm = {}, items, totalValor, valorDomicilio, deliveryDate, deliveryTime, documentType, onSend, onSave, onSaveSale, sendingWhatsapp, savingVenta }, ref) => {
+//const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteForm = {}, items, totalValor, valorDomicilio, deliveryDate, deliveryTime, documentType, onSend, onSave, onSaveSale, sendingWhatsapp, savingVenta }, ref) => {
+  const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteForm = {}, items, totalValor, valorDomicilio, deliveryDate, deliveryTime, documentType, onSend, onSave, onSaveSale, sendingWhatsapp, savingVenta, successMessage, onDismissSuccess }, ref) => {
   if (!open) return null;
   const previewClient = { ...(selectedClient || {}), ...clienteForm };
   const totalFinal = totalValor + valorDomicilio;
   const label = documentType === 'quotation' ? 'COTIZACIÓN' : 'FACTURA';
 
   return (
+
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
          style={{ backgroundColor: 'rgba(26,28,21,0.6)' }}>
       <div ref={ref}
@@ -954,10 +958,10 @@ const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteF
                 <div className="mt-2 text-xs text-white/90 leading-5">
                   <p>Teléfono: (+57) 3177719249</p>
                   <p>Dirección: Calle 112 # 51A-15</p>
-                  <p>Medellín-Antioquia</p>
+                  <p>Medellín - Antioquia</p>
                 </div>
               </div>
-              <button type="button" onClick={onClose}
+             // <button type="button" onClick={onClose}
                       className="w-10 h-10 rounded-xl text-xl font-bold text-white"
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
@@ -1070,6 +1074,25 @@ const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteF
           </div>
         </div>
 
+              {/* ✅ Popup de confirmación al guardar venta */}
+{successMessage && (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center"
+       style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+      <div className="text-5xl mb-4">✅</div>
+      <h3 className="font-extrabold text-lg mb-2" style={{ color: C.text }}>
+        Factura guardada
+      </h3>
+      <p className="text-sm mb-6" style={{ color: C.textMuted }}>{successMessage}</p>
+      <button onClick={onDismissSuccess}
+        className="w-full py-3 rounded-xl text-sm font-semibold text-white"
+        style={{ backgroundColor: C.primary }}>
+        Aceptar
+      </button>
+    </div>
+  </div>
+)}
+
         <div className="p-8 bg-white">
           <div className="flex gap-3 pt-4 flex-col sm:flex-row">
             <button onClick={onClose}
@@ -1092,7 +1115,7 @@ const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteF
             <button type="button" onClick={onSave}
                     className="flex-1 py-3 rounded-2xl text-sm font-semibold"
                     style={{ backgroundColor: '#0B7EDB', color: C.white }}>
-              Guardar en Drive
+              Facturar
             </button>
           </div>
         </div>

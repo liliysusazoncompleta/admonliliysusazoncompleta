@@ -55,39 +55,103 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 ## 📁 Estructura del proyecto
 
 ```
-admonliliysusazoncompleta/
-├── package.json
-├── pnpm-workspace.yaml
-├── README.md
-├── scripts/
-│   ├── check.js
-│   ├── migration_reset_password.sql
-│   ├── schema.sql
-│   └── schema_productos.sql
-├── client/
+admonliliysusazoncompleta/                 # Raíz del monorepo
+│
+├── package.json                            # Dependencias compartidas
+├── pnpm-workspace.yaml                    # Configuración workspace pnpm
+├── README.md                               # Este archivo
+│
+├── scripts/                                # Scripts de utilidad
+│   ├── check.js                            # Diagnóstico de dependencias
+│   ├── migration_reset_password.sql       # Migración: reset password
+│   ├── schema.sql                          # Esquema principal de BD
+│   └── schema_productos.sql               # Esquema adicional productos
+│
+├── client/                                 # Aplicación React (Frontend)
 │   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── index.html
-│   └── src/
-│       ├── App.jsx
-│       ├── main.jsx
-│       ├── index.css
-│       ├── components/
-│       ├── hooks/
-│       └── pages/
-└── server/
+│   ├── vite.config.js                      # Configuración Vite
+│   ├── tailwind.config.js                  # Configuración Tailwind CSS
+│   ├── postcss.config.js                   # Configuración PostCSS
+│   ├── index.html                          # HTML principal
+│   │
+│   └── src/                                # Código fuente React
+│       ├── App.jsx                         # Componente raíz
+│       ├── main.jsx                        # Punto entrada React
+│       ├── index.css                       # Estilos globales
+│       │
+│       ├── components/                     # Componentes reutilizables
+│       │   ├── (componentes compartidos)
+│       │   └── ...
+│       │
+│       ├── hooks/                          # Custom hooks
+│       │   ├── (hooks personalizados)
+│       │   └── ...
+│       │
+│       └── pages/                          # Páginas/vistas
+│           ├── (páginas del sistema)
+│           └── ...
+│
+└── server/                                 # API Node.js (Backend)
     ├── package.json
-    ├── index.js
-    ├── .env
-    ├── config/db.js
-    ├── controllers/
-    ├── middleware/
-    ├── routes/
-    ├── services/
-    └── uploads/productos/
+    ├── index.js                            # Punto entrada del servidor
+    ├── .env                                # Variables de entorno
+    │
+    ├── config/                             # Configuraciones
+    │   ├── db.js                           # Conexión PostgreSQL
+    │   └── ...
+    │
+    ├── controllers/                        # Controladores (lógica)
+    │   ├── (controladores por módulo)
+    │   └── ...
+    │
+    ├── middleware/                         # Middlewares Express
+    │   ├── (validación, autenticación, etc)
+    │   └── ...
+    │
+    ├── routes/                             # Rutas API
+    │   ├── (rutas por módulo)
+    │   └── ...
+    │
+    ├── services/                           # Servicios (lógica de negocio)
+    │   ├── (servicios por módulo)
+    │   └── ...
+    │
+    └── uploads/                            # Almacenamiento de archivos
+        └── productos/                      # Imágenes de productos
+            ├── (imágenes cargadas)
+            └── ...
 ```
+
+### 📂 Detalle de carpetas principales
+
+**`client/src/components/`** — Componentes reutilizables (botones, modales, formularios, tarjetas, etc.)
+
+**`client/src/hooks/`** — Lógica compartida (useAuth, useFetch, useForm, etc.)
+
+**`client/src/pages/`** — Páginas del sistema:
+- Dashboard
+- Empleados
+- Usuarios  
+- Ventas
+- Productos
+- Clientes
+- Login
+
+**`server/controllers/`** — Controladores por módulo:
+- empleadosController.js
+- usuariosController.js
+- ventasController.js
+- productosController.js
+- clientesController.js
+- authController.js
+
+**`server/routes/`** — Rutas agrupadas:
+- auth.routes.js
+- empleados.routes.js
+- usuarios.routes.js
+- ventas.routes.js
+- productos.routes.js
+- clientes.routes.js
 
 ---
 

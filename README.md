@@ -55,6 +55,7 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 ## 📁 Estructura del proyecto
 
 ```
+<<<<<<< HEAD
 admonliliysusazoncompleta/
 ├── package.json
 ├── pnpm-workspace.yaml
@@ -89,6 +90,106 @@ admonliliysusazoncompleta/
     └── uploads/productos/
 ```
 
+=======
+admonliliysusazoncompleta/                 # Raíz del monorepo
+│
+├── package.json                            # Dependencias compartidas
+├── pnpm-workspace.yaml                    # Configuración workspace pnpm
+├── README.md                               # Este archivo
+│
+├── scripts/                                # Scripts de utilidad
+│   ├── check.js                            # Diagnóstico de dependencias
+│   ├── migration_reset_password.sql       # Migración: reset password
+│   ├── schema.sql                          # Esquema principal de BD
+│   └── schema_productos.sql               # Esquema adicional productos
+│
+├── client/                                 # Aplicación React (Frontend)
+│   ├── package.json
+│   ├── vite.config.js                      # Configuración Vite
+│   ├── tailwind.config.js                  # Configuración Tailwind CSS
+│   ├── postcss.config.js                   # Configuración PostCSS
+│   ├── index.html                          # HTML principal
+│   │
+│   └── src/                                # Código fuente React
+│       ├── App.jsx                         # Componente raíz
+│       ├── main.jsx                        # Punto entrada React
+│       ├── index.css                       # Estilos globales
+│       │
+│       ├── components/                     # Componentes reutilizables
+│       │   ├── (componentes compartidos)
+│       │   └── ...
+│       │
+│       ├── hooks/                          # Custom hooks
+│       │   ├── (hooks personalizados)
+│       │   └── ...
+│       │
+│       └── pages/                          # Páginas/vistas
+│           ├── (páginas del sistema)
+│           └── ...
+│
+└── server/                                 # API Node.js (Backend)
+    ├── package.json
+    ├── index.js                            # Punto entrada del servidor
+    ├── .env                                # Variables de entorno
+    │
+    ├── config/                             # Configuraciones
+    │   ├── db.js                           # Conexión PostgreSQL
+    │   └── ...
+    │
+    ├── controllers/                        # Controladores (lógica)
+    │   ├── (controladores por módulo)
+    │   └── ...
+    │
+    ├── middleware/                         # Middlewares Express
+    │   ├── (validación, autenticación, etc)
+    │   └── ...
+    │
+    ├── routes/                             # Rutas API
+    │   ├── (rutas por módulo)
+    │   └── ...
+    │
+    ├── services/                           # Servicios (lógica de negocio)
+    │   ├── (servicios por módulo)
+    │   └── ...
+    │
+    └── uploads/                            # Almacenamiento de archivos
+        └── productos/                      # Imágenes de productos
+            ├── (imágenes cargadas)
+            └── ...
+```
+
+### 📂 Detalle de carpetas principales
+
+**`client/src/components/`** — Componentes reutilizables (botones, modales, formularios, tarjetas, etc.)
+
+**`client/src/hooks/`** — Lógica compartida (useAuth, useFetch, useForm, etc.)
+
+**`client/src/pages/`** — Páginas del sistema:
+- Dashboard
+- Empleados
+- Usuarios  
+- Ventas
+- Productos
+- Clientes
+- Login
+
+**`server/controllers/`** — Controladores por módulo:
+- empleadosController.js
+- usuariosController.js
+- ventasController.js
+- productosController.js
+- clientesController.js
+- authController.js
+
+**`server/routes/`** — Rutas agrupadas:
+- auth.routes.js
+- empleados.routes.js
+- usuarios.routes.js
+- ventas.routes.js
+- productos.routes.js
+- clientes.routes.js
+
+>>>>>>> 05c24a4dabbf73884d077bf9d88cc0e653a7d415
 ---
 
 ## 🔐 Roles del sistema

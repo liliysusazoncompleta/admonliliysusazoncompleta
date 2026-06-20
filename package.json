@@ -9,12 +9,17 @@
     "dev:client": "pnpm --filter client dev",
     "build": "pnpm --filter client build",
     "start": "pnpm --filter server start",
-    "setup": "pnpm install"
+    "setup": "pnpm install",
+    "deploy": "pnpm --filter client build && gh-pages -d client/dist"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "gh-pages": "^6.3.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["bcrypt", "esbuild"]
+    "onlyBuiltDependencies": [
+      "bcrypt",
+      "esbuild"
+    ]
   }
 }

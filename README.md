@@ -55,42 +55,6 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 ## 📁 Estructura del proyecto
 
 ```
-<<<<<<< HEAD
-admonliliysusazoncompleta/
-├── package.json
-├── pnpm-workspace.yaml
-├── README.md
-├── scripts/
-│   ├── check.js
-│   ├── migration_reset_password.sql
-│   ├── schema.sql
-│   └── schema_productos.sql
-├── client/
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── index.html
-│   └── src/
-│       ├── App.jsx
-│       ├── main.jsx
-│       ├── index.css
-│       ├── components/
-│       ├── hooks/
-│       └── pages/
-└── server/
-    ├── package.json
-    ├── index.js
-    ├── .env
-    ├── config/db.js
-    ├── controllers/
-    ├── middleware/
-    ├── routes/
-    ├── services/
-    └── uploads/productos/
-```
-
-=======
 admonliliysusazoncompleta/                 # Raíz del monorepo
 │
 ├── package.json                            # Dependencias compartidas
@@ -189,7 +153,6 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 - productos.routes.js
 - clientes.routes.js
 
->>>>>>> 05c24a4dabbf73884d077bf9d88cc0e653a7d415
 ---
 
 ## 🔐 Roles del sistema

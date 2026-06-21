@@ -34,6 +34,8 @@ export const IK = {
   bell:        ['M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9','M13.73 21a2 2 0 0 1-3.46 0'],
   logout:      ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4','M16 17l5-5-5-5','M21 12H9'],
   cart:        ['M3 3h2l.4 2M7 13h10l4-8H5.4','M7 13L5.4 5','M7 13l-1.7 4.6A1 1 0 0 0 6.25 19H19','M10 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z','M18 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
+  carta: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M12 17v-6','M9.5 14.5L12 17l2.5-2.5'],
+  portafolio: ['M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z','M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z','M12 12h.01'],
   menu:        ['M3 6h18','M3 12h18','M3 18h18'],
   close:       ['M18 6 6 18','M6 6l12 12'],
 };
@@ -43,7 +45,8 @@ const NAV_ITEMS = [
   { key:'clientes',  label:'Clientes',  ik:'clientes',  path:'/clientes'  },
   { key:'productos', label:'Productos', ik:'productos', path:'/productos' },
   { key:'carrito',   label:'Carrito',   ik:'cart',      path:'/carrito'   },
-  { key:'carta', label:'Descargar Carta Clientes', ik:'facturacion', path:'/carta' },
+  { key:'carta',     label:'Descargar Carta Clientes', ik:'carta', path:'/carta' },
+  { key:'portafolio', label:'Portafolio Empresarial', ik:'portafolio', path:'/portafolio' },
   { key:'ventas',    label:'Ventas',    ik:'ventas',    path:'/ventas'    },
   { key:'empleados', label:'Empleados', ik:'empleados', path:'/empleados' },
   { key:'usuarios',  label:'Usuarios',  ik:'usuarios',  path:'/usuarios'  },

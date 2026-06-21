@@ -5,7 +5,6 @@
  */
 import { useState, useEffect } from 'react';
 import { useNavigate }         from 'react-router-dom';
-import axios                   from 'axios';
 import AppLayout               from '../components/AppLayout.jsx';
 
 import api from '../lib/api.js';

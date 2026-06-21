@@ -165,3 +165,41 @@ export const getMe = async (req, res) => {
 export const logout = (_req, res) => {
   return res.json({ success: true, message: 'Sesión cerrada correctamente.' });
 };
+
+// ── GET /api/auth/perfil ──────────────────────────────────────────
+export const getPerfil = async (req, res) => {
+  try {
+    const { rows } = await query(
+  `SELECT
+     u.id_usuario,
+     u.cedula,
+     u.correo,
+     u.rol,
+     u.activo,
+     u.ultimo_login,
+     u.created_at        AS usuario_desde,
+     e.id_empleado,
+     e.nombre            AS nombre_empleado,
+     e.telefono,
+     e.direccion_principal,
+     e.direccion_alterna,
+     e.cargo,
+     e.salario,
+     e.activo            AS empleado_activo
+   FROM public.usuarios u
+   LEFT JOIN public.empleados e ON u.cedula::text = e.cedula::text
+   WHERE u.id_usuario = $1`,
+  [req.user.id_usuario],
+);
+    if (!rows[0])
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+
+    // Eliminar campos sensibles antes de enviar
+    const { password_hash, reset_token, reset_token_expires, ...perfil } = rows[0];
+
+    res.json({ success: true, data: perfil });
+  } catch (err) {
+    console.error('[getPerfil]', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

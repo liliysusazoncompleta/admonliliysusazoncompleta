@@ -7,7 +7,8 @@
  *     <TuContenido />
  *   </AppLayout>
  */
-import { useState } from 'react';
+//import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import logoLili from '../assets/LOGO_LILI.jpg';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -48,16 +49,16 @@ export const IK = {
 };
 
 const NAV_ITEMS = [
-  { key:'dashboard',   label:'Dashboard',    ik:'dashboard',   path:'/dashboard'   },
+  { key:'dashboard',   label:'Inicio',    ik:'dashboard',   path:'/dashboard'   },
   { key:'clientes',    label:'Clientes',     ik:'clientes',    path:'/clientes'    },
   { key:'productos',   label:'Productos',    ik:'productos',   path:'/productos'   },
   { key:'carrito',     label:'Carrito',      ik:'cart',        path:'/carrito'     },
-  { key:'facturacion', label:'Facturación',  ik:'facturacion', path:'/facturacion' },
+  //{ key:'facturacion', label:'Facturación',  ik:'facturacion', path:'/facturacion' },
   { key:'ventas',      label:'Ventas',       ik:'ventas',      path:'/ventas'      },
   { key:'empleados',   label:'Empleados',    ik:'empleados',   path:'/empleados'   },
   { key:'usuarios',    label:'Usuarios',     ik:'usuarios',    path:'/usuarios'    },
-  { key:'reportes',    label:'Reportes',     ik:'reportes',    path:'/reportes'    },
-  { key:'config',      label:'Configuración',ik:'config',      path:'/configuracion'},
+  //{ key:'reportes',    label:'Reportes',     ik:'reportes',    path:'/reportes'    },
+  //{ key:'config',      label:'Configuración',ik:'config',      path:'/configuracion'},
 ];
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -104,14 +105,7 @@ function Sidebar({ activeKey, onLogout }) {
 
       {/* Config + Logout */}
       <div className="py-3 px-3 space-y-1" style={{ borderTop:`1px solid ${C.border}` }}>
-        <button onClick={()=>navigate('/configuracion')}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-          style={{ color:C.textMuted }}
-          onMouseEnter={e=>{ e.currentTarget.style.backgroundColor=C.container; }}
-          onMouseLeave={e=>{ e.currentTarget.style.backgroundColor='transparent'; }}>
-          <Ic d={IK.config} size={17} stroke="currentColor"/>
-          <span className="text-sm font-semibold">Configuración</span>
-        </button>
+        
         <button onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
           style={{ color:C.textMuted }}
@@ -126,11 +120,24 @@ function Sidebar({ activeKey, onLogout }) {
 }
 
 // ── Topbar ────────────────────────────────────────────────────────────────────
-function Topbar({ usuario, searchValue, onSearch }) {
+function Topbar({ usuario, searchValue, onSearch, onLogout }) {
   const rolLabel = usuario?.rol || 'USUARIO';
   const inicial  = (usuario?.correo?.[0] || 'U').toUpperCase();
-  const navigate = useNavigate();
+  const navigate = useNavigate();  
   const { totalUnidades } = useCart();
+  const [dropOpen, setDropOpen] = useState(false);
+  const dropRef = useRef(null);
+
+// Cerrar al hacer clic fuera
+useEffect(() => {
+  const handler = (e) => {
+    if (dropRef.current && !dropRef.current.contains(e.target)) {
+      setDropOpen(false);
+    }
+  };
+  document.addEventListener('mousedown', handler);
+  return () => document.removeEventListener('mousedown', handler);
+}, []);
 
   return (
     <header className="sticky top-0 z-20 flex items-center gap-4 px-6"
@@ -167,11 +174,74 @@ function Topbar({ usuario, searchValue, onSearch }) {
           <Ic d={IK.bell} size={17} stroke={C.textMuted}/>
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ backgroundColor:C.orange }}/>
         </button>
-        <span className="text-xs font-bold hidden md:block" style={{ color:C.textMuted }}>{rolLabel}</span>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
-             style={{ background:`linear-gradient(135deg,${C.primary},${C.primary2})` }}>
-          {inicial}
-        </div>
+        <span className="text-xs font-bold hidden md:block" style={{ color:C.textMuted }}>
+  {rolLabel}
+</span>
+
+{/* Avatar con dropdown */}
+<div className="relative" ref={dropRef}>
+  <button
+    onClick={() => setDropOpen(p => !p)}
+    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all"
+    style={{ background: `linear-gradient(135deg,${C.primary},${C.primary2})`,
+             boxShadow: dropOpen ? `0 0 0 3px ${C.primary}40` : 'none' }}>
+    {inicial}
+  </button>
+
+  {/* Menú desplegable */}
+  {dropOpen && (
+    <div
+      className="absolute right-0 top-10 w-52 rounded-2xl overflow-hidden z-50"
+      style={{ backgroundColor: C.white,
+               boxShadow: '0 12px 32px rgba(26,28,21,0.15)',
+               border: `1px solid ${C.border}` }}>
+
+      {/* Cabecera con info del usuario */}
+      <div className="px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
+        <p className="text-xs font-bold truncate" style={{ color: C.text }}>
+          {usuario?.correo}
+        </p>
+        <p className="text-xs font-medium mt-0.5" style={{ color: C.muted }}>
+          {rolLabel}
+        </p>
+      </div>
+
+      {/* Opción: Ver cuenta */}
+      <button
+        onClick={() => { setDropOpen(false); navigate('/mi-cuenta'); }}
+        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors text-left"
+        style={{ color: C.sub }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = C.container}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Ver mi cuenta
+      </button>
+
+      {/* Separador */}
+      <div style={{ height: 1, backgroundColor: C.border }}/>
+
+      {/* Opción: Cerrar sesión */}
+      <button
+        onClick={() => { setDropOpen(false); onLogout(); }}
+        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors text-left"
+        style={{ color: '#ba1a1a' }}
+        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fff0f0'; }}
+        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Cerrar sesión
+      </button>
+    </div>
+  )}
+</div>
       </div>
     </header>
   );
@@ -189,7 +259,7 @@ export default function AppLayout({ children, activeKey = 'dashboard', searchVal
          style={{ backgroundColor:C.surface, fontFamily:'Manrope,sans-serif' }}>
       <Sidebar activeKey={activeKey} onLogout={handleLogout}/>
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Topbar usuario={usuario} searchValue={searchValue} onSearch={onSearch}/>
+        <Topbar usuario={usuario} searchValue={searchValue} onSearch={onSearch} onLogout={handleLogout}/>
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

@@ -441,11 +441,10 @@ node scripts/check.js
 - Recuperación de contraseña: completo
 - Productos: completo
 - Dashboard: completo
-- Clientes: en desarrollo
+- Clientes: completo
 - Ventas: en desarrollo
-- Facturación: en desarrollo
 - Empleados: en desarrollo
-- Reportes: en desarrollo
+
 
 ---
 

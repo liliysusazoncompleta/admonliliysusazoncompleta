@@ -12,6 +12,8 @@ import CarritoPage            from './pages/CarritoPage.jsx';
 import EmpleadosPage          from './pages/EmpleadosPage.jsx';
 import UsuariosPage           from './pages/UsuariosPage.jsx';
 import VentasPage             from './pages/VentasPage.jsx';
+import MiCuentaPage           from './pages/MiCuentaPage.jsx';
+
 
 export default function App() {
   return (
@@ -29,6 +31,7 @@ export default function App() {
           <Route path="/empleados"       element={<ProtectedRoute><EmpleadosPage /></ProtectedRoute>} />
           <Route path="/usuarios"        element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
           <Route path="/ventas"          element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />
+          <Route path="/mi-cuenta"       element={<ProtectedRoute><MiCuentaPage /></ProtectedRoute>} />
           <Route path="*"                element={<Navigate to="/login" replace />} />
         </Routes>
       </CartProvider>

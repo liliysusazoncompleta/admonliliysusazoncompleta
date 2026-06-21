@@ -524,6 +524,16 @@ node scripts/check.js
 - Los productos usan soft delete con `activo = false`.
 - Todos los módulos de administración (Empleados, Usuarios, Ventas) requieren autenticación.
 
+## Despliegue a producción 
+- Trabajas en → desarrollo
+- Pruebas localmente → pnpm dev
+- Cuando todo funciona:
+  - git checkout main
+  - git merge desarrollo  
+  - git push origin main     ← dispara Railway
+  - git checkout desarrollo  ← vuelves a trabajar
+  -cd client && pnpm deploy ← actualiza GitHub Pages
+
 ---
 
 ## 📞 Contacto

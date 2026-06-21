@@ -261,46 +261,67 @@ export default function CarritoPage() {
   };
 
   const createPdfDocument = async () => {
-    try {
-      const element = previewModalRef.current;
-      if (!element) {
-        setMessage({ type: 'error', text: 'No se pudo capturar el documento para PDF' });
-        return null;
-      }
-
-      const contentDiv = element.querySelector('.invoice-pdf-content');
-      if (!contentDiv) {
-        setMessage({ type: 'error', text: 'Estructura de documento inválida' });
-        return null;
-      }
-
-      const canvas = await html2canvas(contentDiv, {
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'letter');
-      const pageWidth = 216;
-      const pageHeight = 279;
-      const margin = 10;
-      const maxWidth = pageWidth - margin * 2;
-      const maxHeight = pageHeight - margin * 2;
-      const ratio = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
-      const imgWidth = canvas.width * ratio;
-      const imgHeight = canvas.height * ratio;
-      const x = (pageWidth - imgWidth) / 2;
-      const y = (pageHeight - imgHeight) / 2;
-      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-
-      return pdf;
-    } catch (error) {
-      console.error('[PDF_ERROR]', error);
-      setMessage({ type: 'error', text: `Error al generar PDF: ${error.message}` });
+  try {
+    const element = previewModalRef.current;
+    if (!element) {
+      setMessage({ type: 'error', text: 'No se pudo capturar el documento.' });
       return null;
     }
-  };
+    const contentDiv = element.querySelector('.invoice-pdf-content');
+    if (!contentDiv) {
+      setMessage({ type: 'error', text: 'Estructura de documento inválida.' });
+      return null;
+    }
+
+    // ── Clonar en un contenedor off-screen a 780px fijo ──────────────
+    const clone = contentDiv.cloneNode(true);
+    const wrapper = document.createElement('div');
+    Object.assign(wrapper.style, {
+      position: 'fixed', top: '-9999px', left: '-9999px',
+      width: '780px', backgroundColor: '#ffffff',
+      fontFamily: 'Manrope, Arial, sans-serif',
+    });
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    const canvas = await html2canvas(wrapper, {
+      scale: 2, logging: false, useCORS: true, allowTaint: true,
+      width: 780, windowWidth: 780,
+      backgroundColor: '#ffffff',
+    });
+    document.body.removeChild(wrapper);
+
+    // ── Tamaño carta con márgenes estrechos ──────────────────────────
+    const PAGE_W  = 216; // mm carta
+    const PAGE_H  = 279;
+    const MARGIN  = 6;   // márgenes estrechos
+    const MAX_W   = PAGE_W - MARGIN * 2;
+    const MAX_H   = PAGE_H - MARGIN * 2;
+
+    const pdf = new jsPDF('p', 'mm', 'letter');
+
+    // Escalar al ancho completo y verificar que no supere el alto
+    const ratio   = canvas.height / canvas.width;
+    let finalW    = MAX_W;
+    let finalH    = MAX_W * ratio;
+
+    if (finalH > MAX_H) {
+      finalH = MAX_H;
+      finalW = MAX_H / ratio;
+    }
+
+    const x = (PAGE_W - finalW) / 2;
+    const y = MARGIN;
+
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, finalW, finalH);
+    return pdf;
+
+  } catch (error) {
+    console.error('[PDF_ERROR]', error);
+    setMessage({ type: 'error', text: `Error al generar PDF: ${error.message}` });
+    return null;
+  }
+};
 
   const generatePDF = async (type) => {
     const pdf = await createPdfDocument();
@@ -946,134 +967,202 @@ function CheckoutModal({
       <div ref={ref}
            className="w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl bg-white"
            style={{ maxHeight: '92vh', overflowY: 'auto' }}>
-        <div className="invoice-pdf-content" style={{ maxWidth: 780, margin: '0 auto', fontSize: '0.92rem' }}>
-          <div className="p-8 bg-gradient-to-b"
-               style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primary2})` }}>
-            <div className="flex items-center justify-between gap-4">
-              <img src={logoLili}
-                   alt="Logo Lili y su Sazón Completa"
-                   className="w-20 h-20 rounded-2xl object-cover bg-white p-2" />
-              <div>
-                <h1 className="text-xl font-extrabold text-white">{label}</h1>
-                <p className="text-sm text-white opacity-80">Lili y su Sazón Completa</p>
-                <div className="mt-2 text-xs text-white/90 leading-5">
-                  <p>Teléfono: (+57) 3177719249</p>
-                  <p>Dirección: Calle 112 # 51A-15</p>
-                  <p>Medellín - Antioquia</p>
-                </div>
-              </div>
-             // <button type="button" onClick={onClose}
-                      className="w-10 h-10 rounded-xl text-xl font-bold text-white"
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
-                ×
-              </button>
-            </div>
-          </div>
+        <div className="invoice-pdf-content" style={{
+  width: '100%', maxWidth: 780, margin: '0 auto',
+  backgroundColor: '#fff', fontFamily: 'Manrope, Arial, sans-serif',
+  fontSize: items.length > 10 ? '9px' : items.length > 6 ? '11px' : '13px',
+}}>
 
-          <div className="p-8 space-y-6">
-            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-              <div className="rounded-3xl border p-4" style={{ borderColor: C.border, backgroundColor: '#F7FAF3' }}>
-                <p className="text-xs font-bold uppercase" style={{ color: C.textSub }}>Cliente</p>
-                <p className="text-lg font-bold mt-1" style={{ color: C.text }}>{previewClient?.nombre || ''}</p>
-                {previewClient?.telefono && (
-                  <p className="text-sm" style={{ color: C.textMuted }}>{previewClient.telefono}</p>
-                )}
-                {previewClient?.telefono_alt && (
-                  <p className="text-sm" style={{ color: C.textMuted }}>Teléfono alterno: {previewClient.telefono_alt}</p>
-                )}
-                {previewClient?.nit_cc && (
-                  <p className="text-sm" style={{ color: C.textMuted }}>NIT/CC: {previewClient.nit_cc}</p>
-                )}
-                {previewClient?.direccion_principal && (
-                  <p className="text-sm" style={{ color: C.textMuted }}>{previewClient.direccion_principal}</p>
-                )}
-                {previewClient?.direccion_alterna && (
-                  <p className="text-sm" style={{ color: C.textMuted }}>Dirección alterna: {previewClient.direccion_alterna}</p>
-                )}
-                {previewClient?.observaciones && (
-                  <p className="text-sm mt-2 font-medium" style={{ color: C.text }}>Observaciones: {previewClient.observaciones}</p>
-                )}
+{/* ENCABEZADO */}
+<div style={{ backgroundColor:'#fff', padding:'12px 16px',
+              borderBottom:`3px solid ${C.primary}` }}>
+  <div style={{ display:'flex', alignItems:'center', gap:14 }}>
 
-                <div className="mt-4 rounded-3xl border p-4" style={{ borderColor: C.border, backgroundColor: '#FFFFFF' }}>
-                  <p className="text-xs font-bold uppercase mb-2" style={{ color: C.textSub }}>Entrega programada</p>
-                  <p className="text-sm font-semibold" style={{ color: C.text }}>
-                    {deliveryDate} a las {fmtTime12h(deliveryTime)}
-                  </p>
-                </div>
-              </div>
+    {/* Logo */}
+    <img src={logoLili} alt="Logo"
+         style={{ width:70, height:70, borderRadius:10, objectFit:'cover', flexShrink:0 }}/>
 
-              <div className="rounded-3xl border p-5 shadow-sm" style={{ borderColor: C.border, backgroundColor: '#EFF8F6' }}>
-                <p className="text-xs font-bold uppercase mb-3" style={{ color: C.primary }}>Información de pago</p>
-                <p className="text-sm leading-7" style={{ color: C.text }}>
-                  <span className="font-semibold">Cuenta de Ahorros Bancolombia</span>
-                  <br />Número: 25300003634
-                  <br />A NOMBRE DE: <span className="font-semibold">CRUZ MARIA VALENCIA CC. 43089544</span>
-                </p>
-              </div>
-            </div>
+    {/* Info empresa + título */}
+    <div style={{ flex:1, textAlign:'center' }}>
 
-            {/* Productos */}
-            <div className="mt-6">
-              <p className="text-xs font-bold uppercase mb-3" style={{ color: C.textSub }}>Productos</p>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottomColor: C.border, borderBottomWidth: 1 }}>
-                    <th className="text-left py-2 font-bold" style={{ color: C.textSub }}>Descripción</th>
-                    <th className="text-right py-2 font-bold" style={{ color: C.textSub }}>Cant.</th>
-                    <th className="text-right py-2 font-bold" style={{ color: C.textSub }}>V. Unitario</th>
-                    <th className="text-right py-2 font-bold" style={{ color: C.textSub }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id_producto} style={{ borderBottomColor: C.border, borderBottomWidth: 1 }}>
-                      <td className="py-3" style={{ color: C.text }}>{item.nombre}</td>
-                      <td className="text-right py-3" style={{ color: C.text }}>{item.cantidad}</td>
-                      <td className="text-right py-3" style={{ color: C.text }}>{fmtPrecio(item.valor)}</td>
-                      <td className="text-right py-3 font-semibold" style={{ color: C.primary }}>
-                        {fmtPrecio(item.cantidad * item.valor)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* Título FACTURA / COTIZACIÓN */}
+      <p style={{
+        color: '#c00000', fontWeight:900, fontSize:'1.6em',
+        margin:'0 0 4px', letterSpacing:2, textTransform:'uppercase',
+      }}>
+        {documentType === 'quotation' ? 'COTIZACIÓN' : 'FACTURA'}
+      </p>
 
-            {/* Totales */}
-            <div className="space-y-2 mt-6">
-              <div className="flex justify-between text-sm">
-                <span style={{ color: C.textMuted }}>Subtotal</span>
-                <span style={{ color: C.text }}>{fmtPrecio(totalValor)}</span>
-              </div>
-              {valorDomicilio > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: C.textMuted }}>Domicilio</span>
-                  <span style={{ color: C.text }}>{fmtPrecio(valorDomicilio)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-lg font-bold py-3"
-                   style={{ borderTopColor: C.border, borderTopWidth: 2, borderBottomColor: C.border, borderBottomWidth: 2 }}>
-                <span style={{ color: C.textSub }}>TOTAL</span>
-                <span style={{ color: C.primary }}>{fmtPrecio(totalFinal)}</span>
-              </div>
-            </div>
+      {/* Info empresa */}
+      <p style={{ fontWeight:800, fontSize:'0.85em', color:'#1a1c15', margin:'2px 0' }}>
+        LILI Y SU SAZÓN COMPLETA <br/>
+        Nit. 43.089.544-4 &nbsp; RÉGIMEN SIMPLIFICADO
+      </p>
+      <p style={{ fontWeight:800, fontSize:'0.82em', color:'#1a1c15', margin:'2px 0' }}>
+        Tels: (604) 5955045 &nbsp;-&nbsp; (+57) 3177719249
+      </p>
+      <p style={{ fontWeight:800, fontSize:'0.82em', color:'#1a1c15', margin:'2px 0' }}>
+         Medellín - Ant.
+      </p>
+    </div>
 
-            <div className="mt-8 rounded-3xl border p-4" style={{ borderColor: C.border, backgroundColor: '#f7faf3' }}>
-              <p className="text-xs font-bold uppercase mb-2" style={{ color: C.textSub }}>Instrucciones de pago</p>
-              <p className="text-sm leading-6" style={{ color: C.text }}>
-                Transfiere el 50% del valor total a la cuenta de ahorros Bancolombia  #25300003634 A NOMBRE DE: CRUZ MARIA VALENCIA.
-              </p>
-              <p className="mt-3 text-sm leading-6" style={{ color: C.text }}>
-                Envia el comprobante y confirma tu pedido por WhatsApp al +57 3177719249.
-              </p>
-            </div>
-            <div className="mt-4 text-center">
-              <p className="text-sm font-semibold" style={{ color: C.primary }}>¡Gracias por tu compra!</p>
-              <p className="text-xs text-slate-500 mt-2">Contacto: WhatsApp +57 3177719249 · Calle 112 # 51A-15 · Medellín, Antioquia</p>
-            </div>
-          </div>
+    {/* Fechas */}
+    <div style={{ textAlign:'right', fontSize:'0.78em', lineHeight:1.9, flexShrink:0 }}>
+      <p style={{ margin:0 }}>
+        <strong style={{ display:'block', fontSize:'1.05em', color:'#1a1c15' }}>Fecha de Elaboración</strong>
+        <span style={{ color:'#444939' }}>{new Date().toLocaleDateString('es-CO')}</span>
+      </p>
+      <p style={{ margin:'4px 0 0' }}>
+        <strong style={{ display:'block', fontSize:'1.05em', color:'#1a1c15' }}>Fecha de Entrega</strong>
+        <span style={{ color:'#444939' }}>{deliveryDate}</span>
+      </p>
+      <p style={{ margin:'4px 0 0' }}>
+        <strong style={{ display:'block', fontSize:'1.05em', color:'#1a1c15' }}>Hora de Entrega</strong>
+        <span style={{ color:'#444939' }}>{fmtTime12h(deliveryTime)}</span>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+  {/* DATOS CLIENTE + PAGO */}
+  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, padding:'10px 16px' }}>
+
+    {/* Cliente */}
+    <div style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:'8px 10px', backgroundColor:'#f7faf3' }}>
+      <p style={{ fontSize:'0.7em', fontWeight:700, textTransform:'uppercase', color:C.textSub, margin:'0 0 4px' }}>
+        DATOS DEL CLIENTE
+      </p>
+      <p style={{ fontWeight:700, color:C.text, margin:'0 0 2px', fontSize:'1em' }}>
+        {previewClient?.nombre || ''}
+      </p>
+      {previewClient?.nit_cc && (
+        <p style={{ color:C.textMuted, margin:'1px 0', fontSize:'0.85em' }}>CC/NIT: {previewClient.nit_cc}</p>
+      )}
+      {previewClient?.telefono && (
+        <p style={{ color:C.textMuted, margin:'1px 0', fontSize:'0.85em' }}>📞 {previewClient.telefono}</p>
+      )}
+      {previewClient?.telefono_alt && (
+        <p style={{ color:C.textMuted, margin:'1px 0', fontSize:'0.85em' }}>📞 Alt: {previewClient.telefono_alt}</p>
+      )}
+      {previewClient?.direccion_principal && (
+        <p style={{ color:C.textMuted, margin:'1px 0', fontSize:'0.85em' }}>📍 {previewClient.direccion_principal}</p>
+      )}
+      {previewClient?.observaciones && (
+        <p style={{ color:C.text, margin:'4px 0 0', fontSize:'0.82em', fontStyle:'italic' }}>
+          Obs: {previewClient.observaciones}
+        </p>
+      )}
+    </div>
+
+    {/* Pago */}
+    <div style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:'8px 10px', backgroundColor:'#eff8f6' }}>
+      <p style={{ fontSize:'0.7em', fontWeight:700, textTransform:'uppercase', color:C.primary, margin:'0 0 4px' }}>
+        INFORMACIÓN PARA EL PAGO
+      </p>
+      <p style={{ fontSize:'0.85em', color:C.text, margin:'2px 0', lineHeight:1.5 }}>
+        <strong>Cuenta de Ahorros Bancolombia</strong><br/>
+        Número: <strong>25300003634</strong><br/>
+        A nombre de: CRUZ MARIA VALENCIA<br/>
+        CC. 43089544
+      </p>
+      <p style={{ fontSize:'0.78em', color:C.primary, margin:'6px 0 0', fontWeight:600 }}>
+        Transfiere el 50% para confirmar tu pedido
+      </p>
+    </div>
+  </div>
+
+  {/* TABLA DE PRODUCTOS */}
+  <div style={{ padding:'0 16px 8px' }}>
+    <p style={{ fontSize:'0.7em', fontWeight:700, textTransform:'uppercase', color:C.textSub, margin:'0 0 4px' }}>
+      DETALLE DE PRODUCTOS
+    </p>
+    <table style={{ width:'100%', borderCollapse:'collapse' }}>
+      <thead>
+  <tr style={{ borderBottom:`2px solid ${C.border}`, backgroundColor:'#f4f5e7' }}>
+    <th style={{ textAlign:'center', padding:'5px 6px', fontWeight:700, color:C.textSub, fontSize:'0.85em', width:30 }}>
+      ITEM
+    </th>
+    <th style={{ textAlign:'left', padding:'5px 6px', fontWeight:700, color:C.textSub, fontSize:'0.85em' }}>
+      DESCRIPCIÓN
+    </th>
+    <th style={{ textAlign:'center', padding:'5px 6px', fontWeight:700, color:C.textSub, fontSize:'0.85em', width:40 }}>
+      Cant.
+    </th>
+    <th style={{ textAlign:'right', padding:'5px 6px', fontWeight:700, color:C.textSub, fontSize:'0.85em', width:80 }}>
+      V. Unit.
+    </th>
+    <th style={{ textAlign:'right', padding:'5px 6px', fontWeight:700, color:C.textSub, fontSize:'0.85em', width:80 }}>
+      Total
+    </th>
+  </tr>
+</thead>
+      <tbody>
+  {items.map((item, idx) => (
+    <tr key={item.id_producto}
+        style={{ borderBottom:`1px solid ${C.border}`,
+                 backgroundColor: idx % 2 === 0 ? '#fff' : '#fafaed' }}>
+      <td style={{ padding:'4px 6px', color:C.primary, textAlign:'center',
+                   fontWeight:800, fontSize:'0.9em' }}>
+        {idx + 1}
+      </td>
+      <td style={{ padding:'4px 6px', color:C.text, fontSize:'0.9em' }}>{item.nombre}</td>
+      <td style={{ padding:'4px 6px', color:C.text, textAlign:'center', fontSize:'0.9em' }}>{item.cantidad}</td>
+      <td style={{ padding:'4px 6px', color:C.text, textAlign:'right', fontSize:'0.9em' }}>{fmtPrecio(item.valor)}</td>
+      <td style={{ padding:'4px 6px', color:C.primary, textAlign:'right', fontWeight:700, fontSize:'0.9em' }}>
+        {fmtPrecio(item.cantidad * item.valor)}
+      </td>
+    </tr>
+  ))}
+</tbody>
+    </table>
+  </div>
+
+  {/* TOTALES */}
+  <div style={{ padding:'0 16px 8px', display:'flex', justifyContent:'flex-end' }}>
+    <div style={{ width:220 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0',
+                    fontSize:'0.88em', color:C.textMuted }}>
+        <span>Subtotal</span><span style={{ color:C.text }}>{fmtPrecio(totalValor)}</span>
+      </div>
+      {valorDomicilio > 0 && (
+        <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0',
+                      fontSize:'0.88em', color:C.textMuted }}>
+          <span>Domicilio</span><span style={{ color:C.text }}>{fmtPrecio(valorDomicilio)}</span>
         </div>
+      )}
+      <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 0',
+                    borderTop:`2px solid ${C.primary}`, marginTop:4,
+                    fontSize:'1.05em', fontWeight:800 }}>
+        <span style={{ color:C.textSub }}>TOTAL</span>
+        <span style={{ color:C.primary }}>{fmtPrecio(totalFinal)}</span>
+      </div>
+    </div>
+  </div>
+
+  {/* PIE DE PÁGINA */}
+  <div style={{ margin:'0 16px 12px', borderRadius:8, padding:'10px 14px',
+                background:`linear-gradient(135deg,${C.primary},${C.primary2})` }}>
+    <p style={{ color:'#fff', fontWeight:800, fontSize:'0.9em', margin:'0 0 4px', textAlign:'center' }}>
+      🍽️ ¡Gracias por tu compra!
+    </p>
+    <p style={{ color:'rgba(255,255,255,0.9)', fontSize:'0.78em', margin:0, textAlign:'center', lineHeight:1.6 }}>
+      Envía tu comprobante de pago por WhatsApp al <strong>+57 3177719249</strong> para confirmar tu pedido
+    </p>
+    <div style={{ display:'flex', justifyContent:'center', gap:24, marginTop:6 }}>
+      <p style={{ color:'rgba(255,255,255,0.85)', fontSize:'0.75em', margin:0 }}>
+        📸 Instagram: <strong>@liliysusazoncompleta</strong>
+      </p>
+      <p style={{ color:'rgba(255,255,255,0.85)', fontSize:'0.75em', margin:0 }}>
+        💬 WhatsApp: <strong>+57 3177719249</strong>
+      </p>
+    </div>
+    <p style={{ color:'rgba(255,255,255,0.7)', fontSize:'0.7em', margin:'4px 0 0', textAlign:'center' }}>
+      Calle 112 # 51A-15 · Medellín, Antioquia · Colombia
+    </p>
+  </div>
+
+</div>
 
               {/* ✅ Popup de confirmación al guardar venta */}
 {successMessage && (

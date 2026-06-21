@@ -533,6 +533,23 @@ node scripts/check.js
   - git push origin main     ← dispara Railway
   - git checkout desarrollo  ← vuelves a trabajar
   -cd client && pnpm deploy ← actualiza GitHub Pages
+  # Probar local
+pnpm dev
+
+# Cuando funcione, subir a producción
+cd client
+pnpm build
+pnpm exec gh-pages -d dist
+cd ..
+git add .
+git commit -m "fix: sidebar responsive móvil con drawer"
+git push origin desarrollo
+
+# Merge a main para Railway
+git checkout main
+git merge desarrollo
+git push origin main
+git checkout desarrollo
 
 ---
 

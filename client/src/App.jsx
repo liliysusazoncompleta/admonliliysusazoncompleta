@@ -13,6 +13,7 @@ import EmpleadosPage          from './pages/EmpleadosPage.jsx';
 import UsuariosPage           from './pages/UsuariosPage.jsx';
 import VentasPage             from './pages/VentasPage.jsx';
 import MiCuentaPage           from './pages/MiCuentaPage.jsx';
+import CartaPage from './pages/CartaPage.jsx';
 
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/productos"       element={<ProtectedRoute><ProductosPage /></ProtectedRoute>} />
           <Route path="/clientes"        element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
           <Route path="/carrito"         element={<ProtectedRoute><CarritoPage /></ProtectedRoute>} />
+          <Route path="/carta"           element={<ProtectedRoute><CartaPage /></ProtectedRoute>} />
           <Route path="/empleados"       element={<ProtectedRoute><EmpleadosPage /></ProtectedRoute>} />
           <Route path="/usuarios"        element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
           <Route path="/ventas"          element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />

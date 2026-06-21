@@ -43,6 +43,7 @@ const NAV_ITEMS = [
   { key:'clientes',  label:'Clientes',  ik:'clientes',  path:'/clientes'  },
   { key:'productos', label:'Productos', ik:'productos', path:'/productos' },
   { key:'carrito',   label:'Carrito',   ik:'cart',      path:'/carrito'   },
+  { key:'carta', label:'Descargar Carta Clientes', ik:'facturacion', path:'/carta' },
   { key:'ventas',    label:'Ventas',    ik:'ventas',    path:'/ventas'    },
   { key:'empleados', label:'Empleados', ik:'empleados', path:'/empleados' },
   { key:'usuarios',  label:'Usuarios',  ik:'usuarios',  path:'/usuarios'  },

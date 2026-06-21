@@ -8,12 +8,7 @@ import { useNavigate }         from 'react-router-dom';
 import axios                   from 'axios';
 import AppLayout               from '../components/AppLayout.jsx';
 
-const api = axios.create({ baseURL: '/api' });
-api.interceptors.request.use(cfg => {
-  const t = localStorage.getItem('lili_token');
-  if (t) cfg.headers.Authorization = `Bearer ${t}`;
-  return cfg;
-});
+import api from '../lib/api.js';
 
 const C = {
   primary:'#476500', primary2:'#5d7f13',

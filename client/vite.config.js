@@ -1,4 +1,4 @@
-// ── POST /api/auth/login desarrollo local ─────────────────────────────────────────────
+/* // ── POST /api/auth/login desarrollo local ─────────────────────────────────────────────
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -22,11 +22,11 @@ export default defineConfig({
     alias: { '@': '/src' },
   },
 });
-
+*/
 
 
 // ── POST /api/auth/login producción ─────────────────────────────────────────────────────
-/*import { defineConfig } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
@@ -48,4 +48,4 @@ export default defineConfig({
   resolve: {
     alias: { '@': '/src' },
   }
-});*/
+});

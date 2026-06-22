@@ -12,6 +12,9 @@ import usuariosRoutes   from './routes/usuariosRoutes.js';
 import ventasRoutes     from './routes/ventasRoutes.js';
 import { testConnection } from './config/db.js';
 import tipoProductoRoutes from "./routes/tipoProductoRoutes.js";
+import proveedoresRoutes from './routes/proveedoresRoutes.js';
+import comprasRoutes from './routes/comprasRoutes.js';
+
 import path from 'path';
 
 const app  = express();
@@ -49,6 +52,8 @@ app.use('/api/documents',    documentRoutes);
 app.use('/api/ventas',       ventasRoutes);
 app.use('/api/empleados',    empleadosRoutes);
 app.use('/api/usuarios',     usuariosRoutes);
+app.use('/api/proveedores', proveedoresRoutes);
+app.use('/api/compras', comprasRoutes);
 app.use('/api/tipo-producto', tipoProductoRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));

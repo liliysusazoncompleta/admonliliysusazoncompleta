@@ -85,7 +85,11 @@ export const forgotPassword = async (req, res) => {
     );
 
     // ── Construir enlace y enviar email ───────────────────────────────────
-    const resetUrl = `${FRONTEND_URL}/change-password?token=${resetToken}`;
+   const base = (FRONTEND_URL || 'http://localhost:5173')
+  .replace(/\/+$/, '')   // elimina barras finales
+  .replace(/#.*$/, '');  // elimina cualquier # existente
+const resetUrl = `${base}/#/change-password?token=${resetToken}`;
+console.log('[DEBUG] resetUrl:', resetUrl);
     const emailResult = await sendPasswordResetEmail(usuario.correo, resetUrl);
 
     if (!emailResult.success) {

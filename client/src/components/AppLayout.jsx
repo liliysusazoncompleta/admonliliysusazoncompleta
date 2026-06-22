@@ -36,6 +36,8 @@ export const IK = {
   cart:        ['M3 3h2l.4 2M7 13h10l4-8H5.4','M7 13L5.4 5','M7 13l-1.7 4.6A1 1 0 0 0 6.25 19H19','M10 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z','M18 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
   carta: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M12 17v-6','M9.5 14.5L12 17l2.5-2.5'],
   portafolio: ['M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z','M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z','M12 12h.01'],
+  proveedores: ['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z','M9 22V12h6v10'],
+  compras: ['M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z','M3 6h18','M16 10a4 4 0 0 1-8 0'],
   menu:        ['M3 6h18','M3 12h18','M3 18h18'],
   close:       ['M18 6 6 18','M6 6l12 12'],
 };
@@ -48,8 +50,11 @@ const NAV_ITEMS = [
   { key:'carta',     label:'Descargar Carta Clientes', ik:'carta', path:'/carta' },
   { key:'portafolio', label:'Portafolio Empresarial', ik:'portafolio', path:'/portafolio' },
   { key:'ventas',    label:'Ventas',    ik:'ventas',    path:'/ventas'    },
+  { key:'compras', label:'Compras', ik:'compras', path:'/compras' },
   { key:'empleados', label:'Empleados', ik:'empleados', path:'/empleados' },
   { key:'usuarios',  label:'Usuarios',  ik:'usuarios',  path:'/usuarios'  },
+  { key:'proveedores', label:'Proveedores', ik:'proveedores', path:'/proveedores' },
+  
 ];
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────

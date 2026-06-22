@@ -3,7 +3,7 @@
  * @module client/src/pages/ChangePasswordPage
  *
  * Se accede desde el enlace del correo:
- *   http://localhost:5173/change-password?token=TOKEN_AQUI
+ *   http://localhost:5173/admonliliysusazoncompleta/#/change-password?token=TOKEN_AQUI
  */
 
 import { useState, useEffect } from 'react';
@@ -71,9 +71,18 @@ const StrengthBar = ({ password }) => {
 
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function ChangePasswordPage() {
-  const [searchParams]   = useSearchParams();
-  const navigate         = useNavigate();
-  const token            = searchParams.get('token');
+ const [searchParams]   = useSearchParams();
+const navigate         = useNavigate();
+
+// HashRouter pone los params después del #
+// useSearchParams no los lee → leer directo del hash
+const getTokenFromHash = () => {
+  const hash = window.location.hash;
+  const q = hash.indexOf('?');
+  if (q === -1) return null;
+  return new URLSearchParams(hash.slice(q)).get('token');
+};
+const token = getTokenFromHash() || searchParams.get('token');
 
   const [tokenValido,    setTokenValido]    = useState(null); // null=verificando, true, false
   const [newPassword,    setNewPassword]    = useState('');

@@ -12,8 +12,10 @@ import CarritoPage            from './pages/CarritoPage.jsx';
 import EmpleadosPage          from './pages/EmpleadosPage.jsx';
 import UsuariosPage           from './pages/UsuariosPage.jsx';
 import VentasPage             from './pages/VentasPage.jsx';
+import ComprasPage            from './pages/ComprasPage.jsx';
 import MiCuentaPage           from './pages/MiCuentaPage.jsx';
 import CartaPage from './pages/CartaPage.jsx';
+import ProveedoresPage from './pages/ProveedoresPage.jsx';
 import PortafolioPage from './pages/PortafolioPage.jsx';
 
 
@@ -34,8 +36,11 @@ export default function App() {
           <Route path="/empleados"       element={<ProtectedRoute><EmpleadosPage /></ProtectedRoute>} />
           <Route path="/usuarios"        element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
           <Route path="/ventas"          element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />
+          <Route path="/compras"         element={<ProtectedRoute><ComprasPage /></ProtectedRoute>} />
           <Route path="/mi-cuenta"       element={<ProtectedRoute><MiCuentaPage /></ProtectedRoute>} />
           <Route path="/portafolio"      element={<ProtectedRoute><PortafolioPage /></ProtectedRoute>} />
+         <Route path="/proveedores" element={<ProtectedRoute><ProveedoresPage /></ProtectedRoute>} />
+
           <Route path="*"                element={<Navigate to="/login" replace />} />
         </Routes>
       </CartProvider>

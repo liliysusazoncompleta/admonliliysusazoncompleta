@@ -247,6 +247,7 @@ export default function CartaPage() {
   const [loading,    setLoading]    = useState(true);
   const [generating, setGenerating] = useState(false);
   const [msg,        setMsg]        = useState('');
+  const [preview, setPreview] = useState(false);
   const cartaRef = useRef(null);
 
   /* Cargar productos agrupados por tipo */
@@ -358,6 +359,23 @@ api.get('/productos?limit=500&activo=true')
                 </p>
               </div>
 
+              {/* Vista previa */}
+<button onClick={() => setPreview(true)} disabled={loading || totalProds === 0}
+  style={{
+    background: 'linear-gradient(135deg, #476500, #5d7f13)',
+    color: '#fff', border: 'none', borderRadius: 12,
+    padding: '12px 28px', fontSize: 14, fontWeight: 700,
+    cursor: loading ? 'not-allowed' : 'pointer',
+    display: 'flex', alignItems: 'center', gap: 8,
+    boxShadow: '0 4px 14px rgba(71,101,0,0.35)',
+    fontFamily: 'Manrope, sans-serif',
+  }}
+  onMouseEnter={e => { if (!loading) e.currentTarget.style.background = 'linear-gradient(135deg, #5d7f13, #476500)'; }}
+  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, #476500, #5d7f13)'; }}>
+  👁️ Vista Previa
+</button>
+
+
               <button onClick={generarPDF} disabled={generating || totalProds === 0}
                 style={{
                   backgroundColor: generating ? '#9aae5a' : '#476500',
@@ -427,6 +445,91 @@ api.get('/productos?limit=500&activo=true')
           <PaginaCategoria key={cat} categoria={cat} productos={prods}/>
         ))}
       </div>
+
+      {/* Modal Vista Previa */}
+{preview && (
+  <div style={{
+    position: 'fixed', inset: 0, zIndex: 50,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 16,
+  }}
+    onClick={e => { if (e.target === e.currentTarget) setPreview(false); }}>
+
+    <div style={{
+      backgroundColor: '#fff', borderRadius: 16,
+      width: '95vw', maxWidth: 860,
+      maxHeight: '92vh', display: 'flex', flexDirection: 'column',
+      overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
+    }}>
+
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 20px', backgroundColor: '#476500',
+      }}>
+        <div>
+          <p style={{ color: '#E8C06A', fontSize: 10, letterSpacing: 3, margin: '0 0 2px',
+                      textTransform: 'uppercase', fontFamily: 'Manrope, sans-serif' }}>
+            VISTA PREVIA
+          </p>
+          <p style={{ color: '#fff', fontSize: 15, fontWeight: 700, margin: 0,
+                      fontFamily: 'Manrope, sans-serif' }}>
+            Carta de Productos — Lili y su Sazón Completa
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => { setPreview(false); generarPDF(); }}
+            style={{
+              background: 'linear-gradient(135deg, #C8973A, #E8C06A)',
+              color: '#1B3A0F', border: 'none', borderRadius: 10,
+              padding: '8px 18px', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'Manrope, sans-serif',
+            }}>
+            📄 Descargar
+          </button>
+          <button onClick={() => setPreview(false)}
+            style={{
+              background: 'rgba(255,255,255,0.15)', color: '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 10, padding: '8px 16px',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'Manrope, sans-serif',
+            }}>
+            ✕ Cerrar
+          </button>
+        </div>
+      </div>
+
+      {/* Páginas escaladas */}
+      <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#f0f0f0', padding: 20 }}>
+       <div style={{
+  transform: 'scale(0.72)',
+  transformOrigin: 'top center',
+  width: PAGE_W,
+  display: 'block',
+  minHeight: PAGE_H,
+  marginBottom: `-${PAGE_H * 0.28 * (Object.keys(grouped).length + 2)}px`,
+}}>
+        <Portada/>
+{Object.entries(grouped).map(([cat, prods]) => (
+  <PaginaCategoria key={cat} categoria={cat} productos={prods}/>
+))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        padding: '10px 20px', borderTop: '1px solid #e2e3d6',
+        backgroundColor: '#fafaed', textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 12, color: '#747967', margin: 0, fontFamily: 'Manrope, sans-serif' }}>
+          Vista previa al 72% · La carta se generará en tamaño carta completo
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
     </AppLayout>
   );

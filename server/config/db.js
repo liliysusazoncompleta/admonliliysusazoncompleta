@@ -18,6 +18,11 @@ const pool = new Pool({
   idleTimeoutMillis:      30_000,
   connectionTimeoutMillis: 5_000,
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+
+});
+// ✅ SOLUCIÓN CORRECTA: Forzar el search_path cada vez que un cliente se conecta
+pool.on('connect', (client) => {
+  client.query('SET search_path TO public;');
 });
 
 pool.on('error', (err) => {

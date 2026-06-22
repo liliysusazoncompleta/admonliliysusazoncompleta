@@ -10,10 +10,16 @@
 Este proyecto es una aplicación web fullstack para administrar operaciones de catering, con:
 
 - Gestión de productos e inventario
-- Control de usuarios con roles `ADMIN` y `VENTAS`
-- Autenticación segura con JWT
+- Gestión integral de proveedores y compras
+- Control de usuarios con roles `ADMIN`, `OPERADOR` y `COCINERO`
+- Autenticación segura con JWT (usuarios vinculados a empleados por cédula)
 - Recuperación de contraseña por email
 - Subida de imágenes de productos
+- Portafolio/Menú para clientes
+- Carta interactiva para clientes
+- Perfiles de usuario con Mi Cuenta
+- Carrito de compras integrado
+- Interfaz responsive con drawer móvil
 - API REST en Node.js + Express
 - Frontend en React + Vite + Tailwind CSS
 
@@ -22,7 +28,7 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 ## ✨ Últimas modificaciones implementadas
 
 - ✅ **Módulo Empleados**: Visualización, creación, actualización y activación/desactivación de empleados con CRUD completo.
-- ✅ **Módulo Usuarios**: Gestión completa de usuarios del sistema con roles (admin, operador, cocinero) y control de acceso.
+- ✅ **Módulo Usuarios**: Gestión completa de usuarios del sistema con roles (admin, operador, cocinero) y control de acceso. Vinculados a empleados por **cédula única**.
 - ✅ **Módulo Ventas** (v2): Visualización de todas las ventas registradas con filtros avanzados:
   - Filtros separados por **año** y **mes** para mayor flexibilidad.
   - Filtros por vendedor y estado de venta.
@@ -30,7 +36,22 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
   - Cambio dinámico de estado con ciclo: entregada → pendiente → cancelada → entregada.
   - Resumen de totales, comisiones y estadísticas de entregas.
   - Campo `estado` (CHARACTER VARYING) en lugar de `entregada` booleano para mayor control.
+- ✅ **Módulo Proveedores**: Gestión completa de proveedores (CRUD):
+  - Registro de proveedores con NIT único, nombre, dirección y teléfono.
+  - Filtros de búsqueda por nombre y NIT.
+  - Control de estado: Activo/Inactivo.
+  - Auditoría completa: creado_por, actualizado_por, timestamps.
+- ✅ **Módulo Compras**: Registro y seguimiento de compras a proveedores:
+  - Número de factura único con validación.
+  - Filtros avanzados: por factura, producto, proveedor, fechas, mes y año.
+  - Relación con tabla TblProveedores.
+  - Cálculo automático de totales.
+  - Auditoría completa.
 - ✅ **Remoción del campo `hora_entrega` de la tabla de ventas**: El campo de hora ya no se guarda en la base de datos. Solo `fecha_entrega` se persiste ahora.
+- ✅ **Portafolio de Clientes**: Visualización de productos y servicios en formato portafolio para clientes finales.
+- ✅ **Carta de Menú**: Interfaz de carta/menú interactiva para clientes con acceso a productos disponibles.
+- ✅ **Mi Cuenta / Perfil de Usuario**: Página de perfil donde usuarios pueden ver y actualizar su información personal.
+- ✅ **Interfaz Mobile Responsive**: Sidebar con drawer automático en dispositivos móviles para mejor navegación.
 - La factura en vista previa ahora muestra cualquier campo de cliente diligenciado en el formulario, aún si no está guardado en la base de datos.
 - El documento PDF se genera en tamaño `letter` y se escala para que el contenido se visualice mejor en una sola página.
 - El nombre del archivo PDF se genera con el cliente y la fecha: `nombrecliente_yyyymmdd.pdf`.
@@ -135,7 +156,15 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 - Ventas
 - Productos
 - Clientes
+- Proveedores
+- Compras
+- Portafolio
+- Carta
+- Mi Cuenta
+- Carrito
 - Login
+- Cambiar Contraseña
+- Recuperar Contraseña
 
 **`server/controllers/`** — Controladores por módulo:
 - empleadosController.js
@@ -143,6 +172,8 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 - ventasController.js
 - productosController.js
 - clientesController.js
+- proveedoresController.js
+- comprasController.js
 - authController.js
 
 **`server/routes/`** — Rutas agrupadas:
@@ -152,14 +183,16 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 - ventas.routes.js
 - productos.routes.js
 - clientes.routes.js
+- proveedores.routes.js
+- compras.routes.js
 
 ---
 
 ## 🔐 Roles del sistema
 
 - `admin` — acceso completo a todos los módulos incluida administración.
-- `operador` — acceso a gestión de ventas, clientes y productos.
-- `cocinero` — acceso limitado a gestión de producción.
+- `operador` — acceso a gestión de ventas, gastos, clientes, productos y carrito.
+- `ventas` — acceso limitado a gestión de poductos, carrito de compras.
 
 ---
 
@@ -179,6 +212,8 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 - `public.tipo_producto`
 - `public.productos`
 - `public.ventas`
+- `public."TblProveedores"`
+- `public."TblCompras"`
 
 ### Estructura de tablas principales
 
@@ -199,7 +234,7 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 | Campo | Tipo | Descripción |
 |---|---|---|
 | id_usuario | SERIAL PK | Clave primaria |
-| id_empleado | INT | Referencia a `empleados` |
+| cedula |  VARCHAR(30) | Referencia a `empleados` |
 | correo | VARCHAR(255) | Correo de acceso único |
 | password_hash | VARCHAR(255) | Hash bcrypt |
 | rol | VARCHAR(50) | Rol: admin, operador, cocinero, cliente |
@@ -277,12 +312,43 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 | updated_by | INT | Usuario actualizador |
 | activo | BOOLEAN | Venta activa |
 
+#### `public."TblProveedores"`
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | SERIAL PK | Clave primaria |
+| nit | VARCHAR(20) UNIQUE | NIT único del proveedor |
+| nombre | VARCHAR(150) | Nombre del proveedor |
+| direccion | VARCHAR(250) | Dirección del proveedor |
+| telefono | VARCHAR(20) | Teléfono del proveedor |
+| estado | VARCHAR(10) | Estado: 'Activo' o 'Inactivo' |
+| created_at | TIMESTAMP | Fecha creación |
+| created_by | VARCHAR(100) | Usuario creador |
+| updated_at | TIMESTAMP | Fecha actualización |
+| updated_by | VARCHAR(100) | Usuario actualizador |
+
+#### `public."TblCompras"`
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | SERIAL PK | Clave primaria |
+| num_factura | VARCHAR(50) UNIQUE | Número de factura único |
+| fecha_compra | DATE | Fecha de la compra |
+| proveedor_nit | VARCHAR(20) FK | Referencia a `TblProveedores.nit` |
+| producto | VARCHAR(200) | Nombre del producto |
+| valor | NUMERIC(14,2) | Valor total de la compra |
+| created_at | TIMESTAMP | Fecha creación |
+| created_by | VARCHAR(100) | Usuario creador |
+| updated_at | TIMESTAMP | Fecha actualización |
+| updated_by | VARCHAR(100) | Usuario actualizador |
+
 ### Notas de diseño
 
 - Todas las tablas contienen auditoría: `created_at`, `created_by`, `updated_at`, `updated_by`, `activo`.
 - La eliminación lógica se gestiona con `activo = false`.
-- Los usuarios se asocian a empleados mediante `id_empleado`.
+- Los usuarios se asocian a empleados mediante `cedula`.
 - Los clientes requieren teléfono único y admiten NIT opcional.
+- Las tablas `TblProveedores` y `TblCompras` incluyen auditoría completa con `estado` (Activo/Inactivo).
+- Los proveedores se identifican de forma única por NIT.
+- Las compras se relacionan con proveedores mediante el NIT con integridad referencial (FK ON UPDATE CASCADE, ON DELETE RESTRICT).
 
 ---
 
@@ -413,6 +479,22 @@ Libera el puerto para que el servidor pueda arrancar de nuevo.
 - `PUT /:id`
 - `DELETE /:id`
 
+### `/api/proveedores`
+
+- `GET /` (con filtros: q, estado, page, limit)
+- `GET /:id`
+- `POST /` (crear proveedor)
+- `PUT /:id` (actualizar proveedor)
+- `PATCH /:id/estado` (toggle Activo/Inactivo)
+- `DELETE /:id`
+
+### `/api/compras`
+
+- `GET /` (con filtros: q, proveedor, fecha_desde, fecha_hasta, mes, ano)
+- `POST /` (crear compra)
+- `PUT /:id` (actualizar compra)
+- `DELETE /:id`
+
 ---
 
 ## 🧪 Diagnóstico
@@ -437,13 +519,20 @@ node scripts/check.js
 
 ## 📌 Estado del proyecto
 
-- Autenticación: completo
-- Recuperación de contraseña: completo
-- Productos: completo
-- Dashboard: completo
-- Clientes: completo
-- Ventas: en desarrollo
-- Empleados: en desarrollo
+- ✅ Autenticación: completo
+- ✅ Recuperación de contraseña: completo
+- ✅ Productos: completo
+- ✅ Dashboard: completo
+- ✅ Clientes: completo
+- ✅ Ventas: completo
+- ✅ Empleados: completo
+- ✅ Usuarios: completo
+- ✅ Portafolio: completo
+- ✅ Carta: completo
+- ✅ Mi Cuenta: completo
+- ✅ Carrito: completo
+- ✅ Proveedores: completo
+- ✅ Compras: completo
 
 
 ---
@@ -509,11 +598,56 @@ node scripts/check.js
 - Información completa (teléfono, dirección, NIT/CC)
 - Búsqueda y filtrado
 
+### 🏢 Gestión de Proveedores
+- ✅ Visualizar lista completa de proveedores
+- ✅ Crear nuevos proveedores con NIT único
+- ✅ Editar información de proveedores
+- ✅ Activar/desactivar proveedores
+- ✅ Filtrar proveedores por nombre o NIT
+- ✅ Información: nombre, dirección, teléfono, estado
+
+### 📊 Gestión de Compras
+- ✅ Registrar compras con número de factura único
+- ✅ Filtrar compras por factura, producto, proveedor
+- ✅ Filtrar compras por rango de fechas
+- ✅ Filtrar compras por mes y año
+- ✅ Información de proveedor vinculado automáticamente
+- ✅ Cálculo y registro de valores de compra
+- ✅ Auditoría completa de cada compra
+
 ### 🛒 Carrito de Compras
 - Agregar productos al carrito
 - Gestionar cantidades
 - Generar cotizaciones y facturas en PDF
 - Enviar por WhatsApp
+
+### 🎨 Portafolio de Clientes
+- ✅ Visualización profesional de productos y servicios
+- ✅ Catálogo organizado para clientes finales
+- ✅ Navegación intuitiva por categorías
+- ✅ Acceso sin necesidad de login
+
+### 📋 Carta/Menú
+- ✅ Interfaz de menú interactiva
+- ✅ Visualización clara de productos disponibles
+- ✅ Categorización por tipo de producto
+- ✅ Información de precios y presentaciones
+- ✅ Diseño responsive para móviles
+
+### 👤 Mi Cuenta / Perfil de Usuario
+- ✅ Visualización de datos del usuario
+- ✅ Actualización de información personal
+- ✅ Gestión de perfil
+- ✅ Acceso para usuarios autenticados
+
+---
+
+## 📱 Mejoras en Experiencia de Usuario
+
+- **Sidebar Responsive con Drawer**: En dispositivos móviles, el sidebar se transforma en un drawer deslizable para mejor navegación
+- **Interfaz Mobile-First**: Todos los módulos se adaptan automáticamente a pantallas pequeñas
+- **Navegación Intuitiva**: Menú hamburguesa en móviles para acceso rápido a todas las secciones
+- **Optimización de Espacio**: Layouts adaptables que aprovechan el espacio disponible en cada dispositivo
 
 ---
 
@@ -522,7 +656,8 @@ node scripts/check.js
 - El backend usa ESM (`import/export`).
 - Las imágenes se guardan localmente en `server/uploads/productos/`.
 - Los productos usan soft delete con `activo = false`.
-- Todos los módulos de administración (Empleados, Usuarios, Ventas) requieren autenticación.
+- Los módulos de administración (Empleados, Usuarios, Ventas, Proveedores, Compras) requieren autenticación.
+- Las migraciones de proveedores y compras son idempotentes (usan `IF NOT EXISTS`).
 
 ## Despliegue a producción 
 - Trabajas en → desarrollo
@@ -533,7 +668,8 @@ node scripts/check.js
   - git push origin main     ← dispara Railway
   - git checkout desarrollo  ← vuelves a trabajar
   -cd client && pnpm deploy ← actualiza GitHub Pages
-  # Probar local
+
+# Probar local
 pnpm dev
 
 # Cuando funcione, subir a producción

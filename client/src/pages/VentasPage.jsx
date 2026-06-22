@@ -43,6 +43,7 @@ export default function VentasPage() {
   const [filtroEstado, setFiltroEstado] = useState('');
   const [vendedores, setVendedores] = useState([]);
   const [updating, setUpdating] = useState(null);
+  const [preview, setPreview] = useState(false);
   const { toasts, toast, removeToast } = useToast();
 
   const fetchVendedores = useCallback(async () => {
@@ -78,6 +79,41 @@ export default function VentasPage() {
   useEffect(() => {
     fetchVentas();
   }, [fetchVentas]);
+
+  const exportarCSV = () => {
+  if (!ventas.length) return;
+
+  const encabezados = [
+    'Fecha Factura', 'Cliente', 'Vendedor',
+    'Valor Factura', 'Comisión', 'Domicilio',
+    'Fecha Entrega', 'Hora Entrega', 'Estado',
+  ];
+
+  const filas = ventas.map(v => [
+    v.fecha_factura ? new Date(v.fecha_factura).toLocaleDateString('es-CO') : '',
+    v.cliente_nombre || '',
+    v.empleado_nombre || '',
+    Number(v.valor_factura || 0).toLocaleString('es-CO'),
+    Number(v.valor_comision || 0).toLocaleString('es-CO'),
+    Number(v.valor_domicilio || 0).toLocaleString('es-CO'),
+    v.fecha_entrega ? new Date(v.fecha_entrega).toLocaleDateString('es-CO') : '',
+    v.hora_entrega || '',
+    v.estado || '',
+  ]);
+
+  const contenido = [encabezados, ...filas]
+    .map(fila => fila.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob(['\uFEFF' + contenido], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href     = url;
+  link.download = `ventas_${filtroAno || 'todos'}_${filtroMes || 'todos'}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast(`✅ CSV exportado con ${ventas.length} ventas.`);
+};
 
   const handleChangeEstado = async (venta) => {
     setUpdating(venta.id_venta);
@@ -147,15 +183,41 @@ export default function VentasPage() {
           ))}
         </div>
 
-        {/* Encabezado */}
-        <div>
-          <h2 className="font-extrabold text-2xl md:text-3xl" style={{ color: C.text }}>
-            Gestión de Ventas
-          </h2>
-          <p className="text-sm font-medium mt-1" style={{ color: C.textMuted }}>
-            Visualiza y actualiza el estado de las ventas
-          </p>
-        </div>
+       {/* Encabezado */}
+<div className="flex flex-col sm:flex-row sm:items-start gap-4">
+  <div className="flex-1">
+    <h2 className="font-extrabold text-2xl md:text-3xl" style={{ color: C.text }}>
+      Gestión de Ventas
+    </h2>
+    <p className="text-sm font-medium mt-1" style={{ color: C.textMuted }}>
+      Visualiza y actualiza el estado de las ventas
+    </p>
+  </div>
+  {ventas.length > 0 && (
+    <div className="flex gap-2 flex-shrink-0">
+      {/* Vista Previa */}
+      <button onClick={() => setPreview(true)}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+        style={{ backgroundColor: C.primary, color: C.white,
+                 boxShadow: '0 4px 12px rgba(71,101,0,0.3)' }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = C.primary2}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = C.primary}>
+        👁️ Vista Previa
+      </button>
+      {/* Descargar CSV */}
+      <button onClick={exportarCSV}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+        style={{ backgroundColor: '#1B3A0F', color: C.white,
+                 boxShadow: '0 4px 12px rgba(27,58,15,0.3)' }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#2C5418'}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#1B3A0F'}>
+        📥 Descargar CSV
+      </button>
+    </div>
+  )}
+</div>
+
+
 
         {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -227,7 +289,8 @@ export default function VentasPage() {
                     <th className="px-4 py-3 text-left font-semibold" style={{ color: C.text }}>Cliente</th>
                     <th className="px-4 py-3 text-left font-semibold" style={{ color: C.text }}>Vendedor</th>
                     <th className="px-4 py-3 text-right font-semibold" style={{ color: C.text }}>Valor</th>
-                    <th className="px-4 py-3 text-right font-semibold" style={{ color: C.text }}>Comisión</th>
+                   <th className="px-4 py-3 text-right font-semibold" style={{ color: C.text }}>Comisión</th>
+                    <th className="px-4 py-3 text-right font-semibold" style={{ color: C.text }}>Domicilio</th>
                     <th className="px-4 py-3 text-center font-semibold" style={{ color: C.text }}>Entrega</th>
                     <th className="px-4 py-3 text-center font-semibold" style={{ color: C.text }}>Acción</th>
                   </tr>
@@ -244,11 +307,14 @@ export default function VentasPage() {
                         ${Number(venta.valor_factura).toLocaleString('es-CO')}
                       </td>
                       <td className="px-4 py-3 text-right" style={{ color: C.text }}>
-                        ${Number(venta.valor_comision).toLocaleString('es-CO')}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {venta.fecha_entrega ? new Date(venta.fecha_entrega).toLocaleDateString('es-CO') : '—'}
-                      </td>
+  ${Number(venta.valor_comision).toLocaleString('es-CO')}
+</td>
+<td className="px-4 py-3 text-right" style={{ color: C.text }}>
+  ${Number(venta.valor_domicilio || 0).toLocaleString('es-CO')}
+</td>
+<td className="px-4 py-3 text-center">
+  {venta.fecha_entrega ? new Date(venta.fecha_entrega).toLocaleDateString('es-CO') : '—'}
+</td>
                       <td className="px-4 py-3 text-center">
                         <button onClick={() => handleChangeEstado(venta)} disabled={updating === venta.id_venta}
                           className="px-3 py-1 rounded text-xs font-semibold transition-all"
@@ -269,13 +335,20 @@ export default function VentasPage() {
 
         {/* Resumen */}
         {!loading && ventas.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="bg-white rounded-xl p-4 border border-gray-200">
               <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Total Ventas</p>
               <p className="text-xl font-extrabold mt-1" style={{ color: C.primary }}>
                 ${ventas.reduce((sum, v) => sum + Number(v.valor_factura), 0).toLocaleString('es-CO')}
               </p>
             </div>
+                        {/* Antes del cierre del grid */}
+<div className="bg-white rounded-xl p-4 border border-gray-200">
+  <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Domicilios</p>
+  <p className="text-xl font-extrabold mt-1" style={{ color: C.textSub }}>
+    ${ventas.reduce((sum, v) => sum + Number(v.valor_domicilio || 0), 0).toLocaleString('es-CO')}
+  </p>
+</div>
             <div className="bg-white rounded-xl p-4 border border-gray-200">
               <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Comisiones</p>
               <p className="text-xl font-extrabold mt-1" style={{ color: C.primary }}>
@@ -294,9 +367,128 @@ export default function VentasPage() {
                 {ventas.filter(v => v.estado === 'pendiente').length}/{ventas.length}
               </p>
             </div>
+
           </div>
         )}
       </div>
+      {/* ── Modal Vista Previa ─────────────────────────────── */}
+{preview && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+       style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+       onClick={e => { if (e.target === e.currentTarget) setPreview(false); }}>
+    <div className="w-full rounded-2xl overflow-hidden flex flex-col"
+         style={{ maxWidth: 900, maxHeight: '90vh',
+                  backgroundColor: C.white, boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
+
+      {/* Header modal */}
+      <div className="flex items-center justify-between px-6 py-4"
+           style={{ backgroundColor: C.primary }}>
+        <div>
+          <p className="text-xs font-bold tracking-widest uppercase"
+             style={{ color: 'rgba(255,255,255,0.7)', letterSpacing: 3 }}>
+            VISTA PREVIA
+          </p>
+          <p className="text-base font-bold text-white mt-0.5">
+            {ventas.length} venta{ventas.length !== 1 ? 's' : ''} con los filtros actuales
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => { setPreview(false); exportarCSV(); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+            style={{ backgroundColor: '#C8973A', color: '#1B3A0F' }}>
+            📥 Descargar CSV
+          </button>
+          <button onClick={() => setPreview(false)}
+            className="px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: C.white }}>
+            ✕ Cerrar
+          </button>
+        </div>
+      </div>
+
+      {/* Tabla scrollable */}
+      <div className="flex-1 overflow-auto">
+        <table className="w-full text-sm">
+          <thead style={{ backgroundColor: C.container, position: 'sticky', top: 0 }}>
+            <tr>
+              {['Fecha', 'Cliente', 'Vendedor', 'Valor', 'Comisión', 'Domicilio', 'Entrega', 'Estado'].map(h => (
+                <th key={h} className="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wide"
+                    style={{ color: C.textSub }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ventas.map((v, i) => (
+              <tr key={v.id_venta}
+                  style={{ borderBottom: `1px solid ${C.border}`,
+                           backgroundColor: i % 2 === 0 ? C.white : C.surface }}>
+                <td className="px-4 py-2.5 text-xs" style={{ color: C.text }}>
+                  {v.fecha_factura ? new Date(v.fecha_factura).toLocaleDateString('es-CO') : '—'}
+                </td>
+                <td className="px-4 py-2.5 text-xs font-semibold" style={{ color: C.text }}>
+                  {v.cliente_nombre}
+                </td>
+                <td className="px-4 py-2.5 text-xs" style={{ color: C.textMuted }}>
+                  {v.empleado_nombre || '—'}
+                </td>
+                <td className="px-4 py-2.5 text-xs font-bold text-right" style={{ color: C.primary }}>
+                  ${Number(v.valor_factura || 0).toLocaleString('es-CO')}
+                </td>
+                <td className="px-4 py-2.5 text-xs text-right" style={{ color: C.textMuted }}>
+                  ${Number(v.valor_comision || 0).toLocaleString('es-CO')}
+                </td>
+                <td className="px-4 py-2.5 text-xs text-right" style={{ color: C.textMuted }}>
+                  ${Number(v.valor_domicilio || 0).toLocaleString('es-CO')}
+                </td>
+                <td className="px-4 py-2.5 text-xs text-center" style={{ color: C.text }}>
+                  {v.fecha_entrega ? new Date(v.fecha_entrega).toLocaleDateString('es-CO') : '—'}
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  <span className="px-2 py-1 rounded-full text-xs font-semibold"
+                        style={{ backgroundColor: getEstadoColor(v.estado).bg,
+                                 color: getEstadoColor(v.estado).text }}>
+                    {getEstadoLabel(v.estado)}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer resumen */}
+      <div className="flex items-center justify-between px-6 py-3 flex-wrap gap-3"
+           style={{ borderTop: `1px solid ${C.border}`, backgroundColor: C.surface }}>
+        <div className="flex gap-6">
+          <div>
+            <p className="text-xs" style={{ color: C.textMuted }}>Total facturado</p>
+            <p className="text-base font-extrabold" style={{ color: C.primary }}>
+              ${ventas.reduce((s, v) => s + Number(v.valor_factura || 0), 0).toLocaleString('es-CO')}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs" style={{ color: C.textMuted }}>Total comisiones</p>
+            <p className="text-base font-extrabold" style={{ color: C.orange }}>
+              ${ventas.reduce((s, v) => s + Number(v.valor_comision || 0), 0).toLocaleString('es-CO')}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs" style={{ color: C.textMuted }}>Total domicilios</p>
+            <p className="text-base font-extrabold" style={{ color: C.textSub }}>
+              ${ventas.reduce((s, v) => s + Number(v.valor_domicilio || 0), 0).toLocaleString('es-CO')}
+            </p>
+          </div>
+        </div>
+        <p className="text-xs font-medium" style={{ color: C.textMuted }}>
+          {ventas.length} registro{ventas.length !== 1 ? 's' : ''} · exporta solo lo visible
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
     </AppLayout>
   );
 }

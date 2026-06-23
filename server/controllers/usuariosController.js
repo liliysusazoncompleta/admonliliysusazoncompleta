@@ -29,7 +29,14 @@ export const getUsuarios = async (req, res) => {
 
     const { rows } = await query(
       `SELECT u.id_usuario, u.cedula, u.correo, u.rol, u.ultimo_login,
-              u.activo, u.created_at, e.nombre AS empleado_nombre
+              u.activo, u.created_at,
+              e.nombre            AS empleado_nombre,
+              e.telefono          AS empleado_telefono,
+              e.cargo             AS empleado_cargo,
+              e.salario           AS empleado_salario,
+              e.direccion_principal AS empleado_direccion,
+              e.direccion_alterna AS empleado_direccion_alterna,
+              e.activo            AS empleado_activo
        FROM public.usuarios u
        LEFT JOIN public.empleados e ON u.cedula = e.cedula
        ${where}

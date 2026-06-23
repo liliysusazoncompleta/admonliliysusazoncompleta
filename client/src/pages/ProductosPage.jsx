@@ -85,6 +85,34 @@ function useToast() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// CAMPO DE FORMULARIO
+// ══════════════════════════════════════════════════════════════════════════════
+function Field({ label, name, type='text', placeholder, required, form, errors, onChange, children }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold tracking-wider uppercase mb-1.5"
+             style={{ color: C.textSub }}>
+        {label}{required && <span style={{ color: C.error }}> *</span>}
+      </label>
+      {children || (
+        <input type={type} value={form[name]} placeholder={placeholder}
+          onChange={e => onChange(name, e.target.value)}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all"
+          style={{
+            backgroundColor: errors[name] ? C.errorBg : C.container,
+            color: C.text, fontFamily:'Manrope,sans-serif',
+            border: `2px solid ${errors[name] ? C.error : 'transparent'}`,
+          }}
+          onFocus={e => { if (!errors[name]) { e.target.style.backgroundColor=C.white; e.target.style.border=`2px solid ${C.primary}`; }}}
+          onBlur={e =>  { if (!errors[name]) { e.target.style.backgroundColor=C.container; e.target.style.border='2px solid transparent'; }}}
+        />
+      )}
+      {errors[name] && <p className="mt-1 text-xs font-medium" style={{ color:C.error }}>{errors[name]}</p>}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MODAL: CREAR / EDITAR PRODUCTO
 // ══════════════════════════════════════════════════════════════════════════════
 const EMPTY_FORM = { codigo:'', nombre:'', id_tipo_producto:'', presentacion:'', valor:'', descripcion:'', imagen_url:'' };
@@ -104,6 +132,7 @@ function ProductoModal({ open, onClose, onSaved, editData, tipos, toast }) {
 
 const [form, setForm] = useState(EMPTY_FORM);
 const [preview, setPreview] = useState(null);
+const [loadingCodigo, setLoadingCodigo] = useState(false);
 
   const [errors, setErrors]   = useState({});
   const [saving, setSaving]   = useState(false);
@@ -123,23 +152,20 @@ const [preview, setPreview] = useState(null);
       imagen: null,
       imagen_url: editData.imagen_url || '',
     });
-
     setPreview(editData.imagen_url || null);
 
   } else {
-
+    setForm(EMPTY_FORM);
+    setPreview(null);
+    setLoadingCodigo(true);
     api.get('/productos/siguiente-codigo')
       .then(({ data }) => {
-        setForm({
-          ...EMPTY_FORM,
-          codigo: data.codigo,
-        });
+        setForm(p => ({ ...p, codigo: data.codigo }));
       })
       .catch(() => {
-        setForm(EMPTY_FORM);
-      });
-
-    setPreview(null);
+        // Si falla, el campo queda vacío y editable para ingreso manual
+      })
+      .finally(() => setLoadingCodigo(false));
   }
 
   setErrors({});
@@ -237,29 +263,6 @@ const handleSubmit = async e => {
 
   if (!open) return null;
 
-  const Field = ({ label, name, type='text', placeholder, required, children }) => (
-    <div>
-      <label className="block text-xs font-bold tracking-wider uppercase mb-1.5"
-             style={{ color: C.textSub }}>
-        {label}{required && <span style={{ color: C.error }}> *</span>}
-      </label>
-      {children || (
-        <input type={type} value={form[name]} placeholder={placeholder}
-          onChange={e => set(name, e.target.value)}
-          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all"
-          style={{
-            backgroundColor: errors[name] ? C.errorBg : C.container,
-            color: C.text, fontFamily:'Manrope,sans-serif',
-            border: `2px solid ${errors[name] ? C.error : 'transparent'}`,
-          }}
-          onFocus={e => { if (!errors[name]) { e.target.style.backgroundColor=C.white; e.target.style.border=`2px solid ${C.primary}`; }}}
-          onBlur={e =>  { if (!errors[name]) { e.target.style.backgroundColor=C.container; e.target.style.border='2px solid transparent'; }}}
-        />
-      )}
-      {errors[name] && <p className="mt-1 text-xs font-medium" style={{ color:C.error }}>{errors[name]}</p>}
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4"
          style={{ backgroundColor:'rgba(26,28,21,0.5)' }}
@@ -291,8 +294,42 @@ const handleSubmit = async e => {
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Código" name="codigo" placeholder="PRD-001" required/>
-            <Field label="Tipo de Producto" name="id_tipo_producto" required>
+            <div>
+              <label className="block text-xs font-bold tracking-wider uppercase mb-1.5"
+                     style={{ color: C.textSub }}>
+                Código <span style={{ color: C.error }}>*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={form.codigo}
+                  readOnly={!isEdit}
+                  onChange={isEdit ? e => set('codigo', e.target.value) : undefined}
+                  placeholder={loadingCodigo ? 'Generando…' : 'PRD-001'}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all"
+                  style={{
+                    backgroundColor: errors.codigo ? C.errorBg : C.container,
+                    color: loadingCodigo ? C.textMuted : C.text,
+                    fontFamily: 'Manrope,sans-serif',
+                    border: `2px solid ${errors.codigo ? C.error : 'transparent'}`,
+                    cursor: !isEdit ? 'default' : 'text',
+                    paddingRight: loadingCodigo ? '2rem' : undefined,
+                  }}
+                />
+                {loadingCodigo && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2"
+                       style={{ width:14, height:14, border:`2px solid ${C.primary}`,
+                                borderTopColor:'transparent', borderRadius:'50%',
+                                animation:'spin 0.7s linear infinite' }}/>
+                )}
+                {!isEdit && !loadingCodigo && form.codigo && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold"
+                        style={{ color: C.primary }}>AUTO</span>
+                )}
+              </div>
+              {errors.codigo && <p className="mt-1 text-xs font-medium" style={{ color: C.error }}>{errors.codigo}</p>}
+            </div>
+            <Field label="Tipo de Producto" name="id_tipo_producto" required form={form} errors={errors} onChange={set}>
               <select value={form.id_tipo_producto} onChange={e=>set('id_tipo_producto',e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all appearance-none"
                 style={{
@@ -308,10 +345,10 @@ const handleSubmit = async e => {
             </Field>
           </div>
 
-          <Field label="Nombre del Producto" name="nombre" placeholder="Ej: Arroz con Pollo Tradicional" required/>
+          <Field label="Nombre del Producto" name="nombre" placeholder="Ej: Arroz con Pollo Tradicional" required form={form} errors={errors} onChange={set}/>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Presentación" name="presentacion" placeholder="Ej: Bandeja 10 pax" required/>
+            <Field label="Presentación" name="presentacion" placeholder="Ej: Bandeja 10 pax" required form={form} errors={errors} onChange={set}/>
             <div>
   <label
     className="block text-xs font-bold tracking-wider uppercase mb-1.5"
@@ -355,7 +392,7 @@ const handleSubmit = async e => {
 </div>
           </div>
 
-          <Field label="Descripción" name="descripcion" placeholder="Descripción del producto...">
+          <Field label="Descripción" name="descripcion" placeholder="Descripción del producto..." form={form} errors={errors} onChange={set}>
             <textarea value={form.descripcion} onChange={e=>set('descripcion',e.target.value)}
               rows={3} placeholder="Descripción del producto..."
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none transition-all"

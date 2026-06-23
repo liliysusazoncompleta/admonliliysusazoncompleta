@@ -44,6 +44,7 @@ export default function UsuariosPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const { toasts, toast, removeToast } = useToast();
+  const [empleadoDetalle, setEmpleadoDetalle] = useState(null);
 
   const [formData, setFormData] = useState({
     cedula: '', correo: '', password: '', rol: 'operador'
@@ -189,7 +190,18 @@ export default function UsuariosPage() {
                   {usuarios.map(usr => (
                     <tr key={usr.id_usuario} style={{ borderBottom: `1px solid ${C.border}` }}>
                       <td className="px-4 py-3" style={{ color: C.text }}>{usr.correo}</td>
-                      <td className="px-4 py-3" style={{ color: C.text }}>{usr.empleado_nombre || '—'}</td>
+                      <td className="px-4 py-3">
+                        {usr.empleado_nombre ? (
+                          <button
+                            onClick={() => setEmpleadoDetalle(usr)}
+                            className="text-left font-semibold text-sm transition-all"
+                            style={{ color: C.primary, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>
+                            {usr.empleado_nombre}
+                          </button>
+                        ) : (
+                          <span style={{ color: C.textMuted }}>—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3" style={{ color: C.text }}>{usr.rol}</td>
                       <td className="px-4 py-3">
                         <span style={{
@@ -319,6 +331,78 @@ export default function UsuariosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal detalle empleado */}
+      {empleadoDetalle && (
+        <div className="fixed inset-0 flex items-center justify-center z-50"
+             style={{ backgroundColor: 'rgba(26,28,21,0.55)' }}
+             onClick={e => { if (e.target === e.currentTarget) setEmpleadoDetalle(null); }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4"
+                 style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: C.container }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-extrabold text-white"
+                     style={{ background: `linear-gradient(135deg,${C.primary},${C.primary2})` }}>
+                  {(empleadoDetalle.empleado_nombre?.[0] || '?').toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-extrabold text-sm" style={{ color: C.text }}>{empleadoDetalle.empleado_nombre}</p>
+                  <p className="text-xs font-medium" style={{ color: C.textMuted }}>{empleadoDetalle.correo}</p>
+                </div>
+              </div>
+              <button onClick={() => setEmpleadoDetalle(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: C.textMuted, lineHeight: 1 }}>
+                ×
+              </button>
+            </div>
+
+            {/* Cuerpo */}
+            <div className="px-5 py-4 space-y-0">
+              {[
+                { label: 'Cédula',       valor: empleadoDetalle.cedula },
+                { label: 'Teléfono',     valor: empleadoDetalle.empleado_telefono },
+                { label: 'Cargo',        valor: empleadoDetalle.empleado_cargo },
+                { label: 'Salario',      valor: empleadoDetalle.empleado_salario != null
+                    ? `$${Number(empleadoDetalle.empleado_salario).toLocaleString('es-CO')}` : null },
+                { label: 'Dirección',    valor: empleadoDetalle.empleado_direccion },
+                { label: 'Dir. alterna', valor: empleadoDetalle.empleado_direccion_alterna },
+                { label: 'Estado emp.',  valor: null, badge: empleadoDetalle.empleado_activo },
+                { label: 'Rol sistema',  valor: empleadoDetalle.rol },
+                { label: 'Último login', valor: empleadoDetalle.ultimo_login
+                    ? new Date(empleadoDetalle.ultimo_login).toLocaleString('es-CO') : 'Nunca' },
+              ].map(({ label, valor, badge }) => (
+                <div key={label} className="flex items-center gap-3 py-2.5"
+                     style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <span className="w-32 flex-shrink-0 text-xs font-bold uppercase tracking-wide"
+                        style={{ color: C.textMuted }}>{label}</span>
+                  {badge !== undefined ? (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: badge ? '#eef3e4' : '#ffdad6',
+                                   color: badge ? C.primary : C.error }}>
+                      {badge ? '✓ Activo' : '✗ Inactivo'}
+                    </span>
+                  ) : (
+                    <span className="text-sm font-semibold" style={{ color: valor ? C.text : C.textMuted }}>
+                      {valor || '—'}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 flex justify-end" style={{ borderTop: `1px solid ${C.border}` }}>
+              <button onClick={() => setEmpleadoDetalle(null)}
+                className="px-5 py-2 rounded-xl text-sm font-semibold"
+                style={{ backgroundColor: C.container, color: C.textSub }}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toasts */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">

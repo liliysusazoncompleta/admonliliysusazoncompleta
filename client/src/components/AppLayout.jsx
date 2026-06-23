@@ -147,8 +147,11 @@ function Sidebar({ activeKey, onLogout, isOpen, onClose }) {
 
 // ── Topbar ────────────────────────────────────────────────────────────────────
 function Topbar({ usuario, searchValue, onSearch, onLogout, onMenuToggle }) {
-  const rolLabel = usuario?.rol || 'USUARIO';
-  const inicial  = (usuario?.correo?.[0] || 'U').toUpperCase();
+  const rolLabel    = usuario?.rol || 'USUARIO';
+  const nombreLabel = usuario?.empleado_nombre
+    ? usuario.empleado_nombre.split(' ').slice(0, 2).join(' ')
+    : (usuario?.correo?.split('@')[0] || 'Usuario');
+  const inicial     = (nombreLabel[0] || 'U').toUpperCase();
   const navigate = useNavigate();
   const { totalUnidades } = useCart();
   const [dropOpen, setDropOpen] = useState(false);
@@ -218,8 +221,8 @@ function Topbar({ usuario, searchValue, onSearch, onLogout, onMenuToggle }) {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ backgroundColor:C.orange }}/>
         </button>
 
-        {/* Rol */}
-        <span className="text-xs font-bold hidden md:block" style={{ color:C.textMuted }}>{rolLabel}</span>
+        {/* Nombre usuario */}
+        <span className="text-xs font-bold hidden md:block" style={{ color:C.textMuted }}>{nombreLabel}</span>
 
         {/* Avatar + dropdown */}
         <div className="relative" ref={dropRef}>
@@ -235,7 +238,8 @@ function Topbar({ usuario, searchValue, onSearch, onLogout, onMenuToggle }) {
                  style={{ backgroundColor:C.white, border:`1px solid ${C.border}`,
                           boxShadow:'0 12px 32px rgba(26,28,21,0.15)' }}>
               <div className="px-4 py-3" style={{ borderBottom:`1px solid ${C.border}` }}>
-                <p className="text-xs font-bold truncate" style={{ color:C.text }}>{usuario?.correo}</p>
+                <p className="text-sm font-bold truncate" style={{ color:C.text }}>{nombreLabel}</p>
+                <p className="text-xs font-medium mt-0.5 truncate" style={{ color:C.textMuted }}>{usuario?.correo}</p>
                 <p className="text-xs font-medium mt-0.5" style={{ color:C.textMuted }}>{rolLabel}</p>
               </div>
               <button onClick={() => { setDropOpen(false); navigate('/mi-cuenta'); }}

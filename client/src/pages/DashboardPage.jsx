@@ -41,6 +41,7 @@ const IK = {
   clientes:      ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2','M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z','M23 21v-2a4 4 0 0 0-3-3.87','M16 3.13a4 4 0 0 1 0 7.75'],
   productos:     ['M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z','M3.27 6.96L12 12.01l8.73-5.05','M12 22.08V12'],
   facturacion:   ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M16 13H8','M16 17H8','M10 9H8'],
+  cart:          ['M3 3h2l.4 2M7 13h10l4-8H5.4','M7 13L5.4 5','M7 13l-1.7 4.6A1 1 0 0 0 6.25 19H19','M10 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z','M18 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
   ventas:        ['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z','M12 6v6l4 2'],
   empleados:     ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2','M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8z','M19 8a3 3 0 0 1 0 6','M22 21v-2a4 4 0 0 0-3-3.87'],
   usuarios:      ['M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2','M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'],
@@ -172,10 +173,22 @@ function Topbar({ usuario }) {
 // MÓDULOS
 // ══════════════════════════════════════════════════════════════════════════════
 const MODS = [
-  { key:'productos',   title:'Productos',   desc:'Gestione el inventario, recetas y disponibilidad de los platillos.',         ik:'productos',   color:C.primary, bg:'#eef3e4', cta:'Acceder',      hi:false },
-  { key:'clientes',    title:'Clientes',    desc:'Directorio de clientes, historiales de pedidos y preferencias.',             ik:'clientes',    color:C.primary, bg:'#eef3e4', cta:'Acceder',      hi:false },
-  { key:'facturacion', title:'Facturación', desc:'Control de pagos, emisión de recibos y estado de cuentas.',                  ik:'facturacion', color:C.primary, bg:'#eef3e4', cta:'Acceder',      hi:false },
-  { key:'ventas',      title:'Ventas',      desc:'Registro de nuevos pedidos, seguimiento de entregas y reportes de caja.',    ik:'ventas',      color:C.orange,  bg:'#fff3eb', cta:'Nuevo Pedido', hi:true  },
+  {
+    key:'productos', title:'Productos', ik:'productos', color:C.primary, bg:'#eef3e4', hi:false, cta:'Acceder',
+    desc:'Crea, edita y organiza el catálogo de platillos. Controla códigos, tipos, presentaciones, precios e imágenes de cada producto.',
+  },
+  {
+    key:'clientes', title:'Clientes', ik:'clientes', color:C.primary, bg:'#eef3e4', hi:false, cta:'Acceder',
+    desc:'Registra y gestiona el directorio de clientes. Consulta datos de contacto, historial de pedidos y preferencias de cada cliente.',
+  },
+  {
+    key:'carrito', title:'Carrito', ik:'cart', color:C.primary, bg:'#eef3e4', hi:false, cta:'Acceder',
+    desc:'Agrega productos al carrito, ajusta cantidades, genera cotizaciones en PDF y envíalas por WhatsApp a tus clientes.',
+  },
+  {
+    key:'ventas', title:'Ventas', ik:'ventas', color:C.orange, bg:'#fff3eb', hi:true, cta:'Nuevo Pedido',
+    desc:'Registra nuevos pedidos, consulta el historial de ventas, filtra por fecha y vendedor, y cambia el estado de cada entrega.',
+  },
 ];
 
 function ModCard({ mod, onNav }) {
@@ -302,8 +315,8 @@ useEffect(() => {
                 Bienvenido al sistema
               </h2>
               <p className="mt-1.5 text-sm leading-relaxed max-w-lg" style={{ color: C.textMuted }}>
-                Gestione los pedidos, inventario y clientes de manera eficiente.
-                Todo lo necesario para llevar el control de la cocina a la mesa.
+                Gestione pedidos, inventario y clientes desde un solo lugar.
+                Usa los módulos principales para acceder rápidamente a las funciones más usadas del sistema.
               </p>
               <div className="flex items-center gap-4 mt-4 flex-wrap">
                 <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold tracking-wider uppercase"

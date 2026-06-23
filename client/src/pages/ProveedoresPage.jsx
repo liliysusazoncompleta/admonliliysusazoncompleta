@@ -30,6 +30,33 @@ function useToast() {
   return { toasts, toast: add };
 }
 
+/* ── Campo de formulario ─────────────────────────────────────── */
+function Field({ label, name, placeholder, required, type = 'text', form, errors, onChange, children }) {
+  return (
+    <div>
+      <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase',
+                      letterSpacing:1, color:C.sub, marginBottom:6 }}>
+        {label}{required && <span style={{ color:C.error }}> *</span>}
+      </label>
+      {children || (
+        <input type={type} value={form[name]} placeholder={placeholder}
+          onChange={e => onChange(name, e.target.value)}
+          style={{
+            width:'100%', padding:'10px 12px', borderRadius:10, fontSize:14,
+            fontFamily:'Manrope,sans-serif', outline:'none',
+            backgroundColor: errors[name] ? C.errorBg : C.container,
+            border: `2px solid ${errors[name] ? C.error : 'transparent'}`,
+            color: C.text, boxSizing:'border-box',
+          }}
+          onFocus={e => { if (!errors[name]) { e.target.style.backgroundColor=C.white; e.target.style.border=`2px solid ${C.primary}`; }}}
+          onBlur={e  => { if (!errors[name]) { e.target.style.backgroundColor=C.container; e.target.style.border='2px solid transparent'; }}}
+        />
+      )}
+      {errors[name] && <p style={{ color:C.error, fontSize:11, marginTop:4 }}>{errors[name]}</p>}
+    </div>
+  );
+}
+
 /* ── Modal Crear / Editar ────────────────────────────────────── */
 const EMPTY = { nit:'', nombre:'', direccion:'', telefono:'', estado:'Activo' };
 
@@ -79,30 +106,6 @@ function ProveedorModal({ open, onClose, onSaved, editData, toast }) {
 
   if (!open) return null;
 
-  const Field = ({ label, name, placeholder, required, type = 'text', children }) => (
-    <div>
-      <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase',
-                      letterSpacing:1, color:C.sub, marginBottom:6 }}>
-        {label}{required && <span style={{ color:C.error }}> *</span>}
-      </label>
-      {children || (
-        <input type={type} value={form[name]} placeholder={placeholder}
-          onChange={e => set(name, e.target.value)}
-          style={{
-            width:'100%', padding:'10px 12px', borderRadius:10, fontSize:14,
-            fontFamily:'Manrope,sans-serif', outline:'none',
-            backgroundColor: errors[name] ? C.errorBg : C.container,
-            border: `2px solid ${errors[name] ? C.error : 'transparent'}`,
-            color: C.text, boxSizing:'border-box',
-          }}
-          onFocus={e => { if (!errors[name]) { e.target.style.backgroundColor=C.white; e.target.style.border=`2px solid ${C.primary}`; }}}
-          onBlur={e  => { if (!errors[name]) { e.target.style.backgroundColor=C.container; e.target.style.border='2px solid transparent'; }}}
-        />
-      )}
-      {errors[name] && <p style={{ color:C.error, fontSize:11, marginTop:4 }}>{errors[name]}</p>}
-    </div>
-  );
-
   return (
     <div style={{ position:'fixed', inset:0, zIndex:50, backgroundColor:'rgba(26,28,21,0.55)',
                   display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
@@ -129,8 +132,8 @@ function ProveedorModal({ open, onClose, onSaved, editData, toast }) {
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:14 }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <Field label="NIT" name="nit" placeholder="900123456-1" required/>
-            <Field label="Estado" name="estado">
+            <Field label="NIT" name="nit" placeholder="900123456-1" required form={form} errors={errors} onChange={set}/>
+            <Field label="Estado" name="estado" form={form} errors={errors} onChange={set}>
               <select value={form.estado} onChange={e => set('estado', e.target.value)}
                 style={{ width:'100%', padding:'10px 12px', borderRadius:10, fontSize:14,
                          fontFamily:'Manrope,sans-serif', outline:'none', cursor:'pointer',
@@ -141,9 +144,9 @@ function ProveedorModal({ open, onClose, onSaved, editData, toast }) {
               </select>
             </Field>
           </div>
-          <Field label="Nombre del Proveedor" name="nombre" placeholder="Nombre o razón social" required/>
-          <Field label="Dirección" name="direccion" placeholder="Calle, ciudad..."/>
-          <Field label="Teléfono" name="telefono" placeholder="300 123 4567"/>
+          <Field label="Nombre del Proveedor" name="nombre" placeholder="Nombre o razón social" required form={form} errors={errors} onChange={set}/>
+          <Field label="Dirección" name="direccion" placeholder="Calle, ciudad..." form={form} errors={errors} onChange={set}/>
+          <Field label="Teléfono" name="telefono" placeholder="300 123 4567" form={form} errors={errors} onChange={set}/>
 
           <div style={{ display:'flex', gap:10, paddingTop:4 }}>
             <button type="button" onClick={onClose} disabled={saving}

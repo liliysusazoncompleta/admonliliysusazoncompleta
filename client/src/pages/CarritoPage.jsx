@@ -85,6 +85,7 @@ export default function CarritoPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
   const [previewDocumentType, setPreviewDocumentType] = useState(null);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
 
   const vacio = items.length === 0;
 
@@ -94,6 +95,7 @@ export default function CarritoPage() {
     setSelectedClient(null);
     setSelectedVendedor(null);
     setCommissionPercentage(0);
+    setDiscountPercentage(0);
     setClienteForm(EMPTY_CLIENT_FORM);
     setFormErrors({});
     setDeliveryDate('');
@@ -227,14 +229,19 @@ export default function CarritoPage() {
     const totalConDomicilio = totalValor + (Number(clienteForm.valor_domicilio) || 0);
     const porcentajeComision = Number(commissionPercentage || 0);
     const valorComision = Math.round(totalValor * (porcentajeComision / 100) * 100) / 100;
+    const porcentajeDescuento = Number(discountPercentage || 0);
+    const valorDescuento = Math.round(totalValor * (porcentajeDescuento / 100) * 100) / 100;
+    const totalFinalConDescuento = totalValor - valorDescuento + (Number(clienteForm.valor_domicilio) || 0);
     const payload = {
       id_cliente: selectedClient.id_cliente,
       id_empleado_comision: selectedVendedor,
       fecha_entrega: deliveryDate,
-      valor_factura: totalConDomicilio,
+      valor_factura: totalFinalConDescuento,
       porcentaje_comision: porcentajeComision,
       valor_comision: valorComision,
       valor_domicilio: Number(clienteForm.valor_domicilio) || 0,
+      porcentaje_descuento: porcentajeDescuento || null,
+      valor_descuento: valorDescuento || null,
       observaciones: clienteForm.observaciones?.trim() || null,
     };
 
@@ -579,6 +586,8 @@ export default function CarritoPage() {
           commissionPercentage={commissionPercentage}
           onCommissionPercentageChange={setCommissionPercentage}
           onVendedorChange={handleVendedorChange}
+          discountPercentage={discountPercentage}
+          onDiscountPercentageChange={setDiscountPercentage}
           onSearch={searchClientes}
           onSelectCliente={handleSelectCliente}
           onFieldChange={setClienteField}
@@ -611,6 +620,7 @@ export default function CarritoPage() {
           items={items}
           totalValor={totalValor}
           valorDomicilio={Number(clienteForm.valor_domicilio) || 0}
+          discountPercentage={discountPercentage}
           deliveryDate={deliveryDate}
           deliveryTime={deliveryTime}
           documentType={previewDocumentType}
@@ -632,6 +642,7 @@ function CheckoutModal({
   selectedClient, clienteForm, formErrors, savingCliente,
   deliveryDate, deliveryTime, totalValor, items = [],
   empleados = [], selectedVendedor, commissionPercentage, onCommissionPercentageChange, onVendedorChange,
+  discountPercentage, onDiscountPercentageChange,
   onSearch, onSelectCliente, onFieldChange,
   onDeliveryDateChange, onDeliveryTimeChange,
   onCreateCliente, onFinalize, onReset, message,
@@ -640,6 +651,8 @@ function CheckoutModal({
   if (!open) return null;
   const porcentajeComision = Number(commissionPercentage || 0);
   const valorComision = Math.round(totalValor * (porcentajeComision / 100) * 100) / 100;
+  const porcentajeDescuento = Number(discountPercentage || 0);
+  const valorDescuento = Math.round(totalValor * (porcentajeDescuento / 100) * 100) / 100;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
          style={{ backgroundColor:'rgba(26,28,21,0.6)' }}>
@@ -889,6 +902,32 @@ function CheckoutModal({
                 </div>
               </div>
 
+              <div className="rounded-3xl border border-dashed p-4" style={{ borderColor:C.border, backgroundColor:'#f8faf4' }}>
+                <p className="text-xs font-bold uppercase mb-3" style={{ color:C.textSub }}>Descuento</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-500">Porcentaje de descuento</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      value={discountPercentage}
+                      onChange={e => onDiscountPercentageChange(Number(e.target.value || 0))}
+                      className="w-full px-4 py-3 rounded-2xl border text-sm bg-white outline-none"
+                      style={{ borderColor:C.border, color:C.text }}
+                      placeholder="Opcional"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-500">Valor del descuento</label>
+                    <input value={fmtPrecio(valorDescuento)} readOnly
+                      className="w-full px-4 py-3 rounded-2xl border text-sm bg-slate-100 outline-none"
+                      style={{ borderColor:C.border, color:C.text }} />
+                  </div>
+                </div>
+              </div>
+
               {/* Resumen de totales */}
               {selectedClient && (
                 <div className="rounded-2xl border p-4 bg-slate-50">
@@ -898,6 +937,12 @@ function CheckoutModal({
                       <dt style={{ color:C.textMuted }}>Subtotal productos</dt>
                       <dd className="font-semibold" style={{ color:C.text }}>{fmtPrecio(totalValor)}</dd>
                     </div>
+                    {valorDescuento > 0 && (
+                      <div className="flex justify-between">
+                        <dt style={{ color:C.textMuted }}>Descuento ({porcentajeDescuento}%)</dt>
+                        <dd className="font-semibold" style={{ color:C.error }}>-{fmtPrecio(valorDescuento)}</dd>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <dt style={{ color:C.textMuted }}>Domicilio</dt>
                       <dd className="font-semibold" style={{ color:C.text }}>{fmtPrecio(Number(clienteForm.valor_domicilio) || 0)}</dd>
@@ -906,7 +951,7 @@ function CheckoutModal({
                   <div className="mt-3 pt-3 border-t flex items-end justify-between" style={{ borderColor:C.border }}>
                     <span className="text-sm font-bold" style={{ color:C.textSub }}>Total</span>
                     <span className="font-extrabold text-lg" style={{ color:C.primary }}>
-                      {fmtPrecio(totalValor + (Number(clienteForm.valor_domicilio) || 0))}
+                      {fmtPrecio(totalValor - valorDescuento + (Number(clienteForm.valor_domicilio) || 0))}
                     </span>
                   </div>
                 </div>
@@ -954,10 +999,12 @@ function CheckoutModal({
 
 // ── MODAL: VISTA PREVIA DE FACTURA ────────────────────────────────────────────
 //const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteForm = {}, items, totalValor, valorDomicilio, deliveryDate, deliveryTime, documentType, onSend, onSave, onSaveSale, sendingWhatsapp, savingVenta }, ref) => {
-  const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteForm = {}, items, totalValor, valorDomicilio, deliveryDate, deliveryTime, documentType, onSend, onSave, onSaveSale, sendingWhatsapp, savingVenta, successMessage, onDismissSuccess }, ref) => {
+  const PreviewModal = React.forwardRef(({ open, onClose, selectedClient, clienteForm = {}, items, totalValor, valorDomicilio, discountPercentage, deliveryDate, deliveryTime, documentType, onSend, onSave, onSaveSale, sendingWhatsapp, savingVenta, successMessage, onDismissSuccess }, ref) => {
   if (!open) return null;
   const previewClient = { ...(selectedClient || {}), ...clienteForm };
-  const totalFinal = totalValor + valorDomicilio;
+  const porcentajeDescuento = Number(discountPercentage || 0);
+  const valorDescuento = Math.round(totalValor * (porcentajeDescuento / 100) * 100) / 100;
+  const totalFinal = totalValor - valorDescuento + valorDomicilio;
   const label = documentType === 'quotation' ? 'COTIZACIÓN' : 'FACTURA';
 
   return (
@@ -1125,6 +1172,13 @@ function CheckoutModal({
                     fontSize:'0.88em', color:C.textMuted }}>
         <span>Subtotal</span><span style={{ color:C.text }}>{fmtPrecio(totalValor)}</span>
       </div>
+      {valorDescuento > 0 && (
+        <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0',
+                      fontSize:'0.88em', color:C.textMuted }}>
+          <span>Descuento ({porcentajeDescuento}%)</span>
+          <span style={{ color:'#ba1a1a' }}>-{fmtPrecio(valorDescuento)}</span>
+        </div>
+      )}
       {valorDomicilio > 0 && (
         <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0',
                       fontSize:'0.88em', color:C.textMuted }}>

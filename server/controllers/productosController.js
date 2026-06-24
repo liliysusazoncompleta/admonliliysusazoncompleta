@@ -37,7 +37,7 @@ export const getProductos = async (req, res) => {
 
     const sql = `
       SELECT p.id_producto, p.codigo, p.nombre, p.presentacion,
-             p.valor, p.descripcion, p.imagen_url, p.created_at,
+             p.valor, p.descripcion, p.imagen_url, p.created_at, p.updated_at,
              t.id_tipo_producto, t.nombre AS tipo_nombre
       FROM public.productos p
       JOIN public.tipo_producto t ON p.id_tipo_producto = t.id_tipo_producto

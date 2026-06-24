@@ -43,7 +43,14 @@ const IMG_BY_TYPE = {
   Sopas:       'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=75&fit=crop',
   Postres:     'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=75&fit=crop',
 };
-const getImg = (tipo, url) => url || IMG_BY_TYPE[tipo] || IMG_BY_TYPE.Carne;
+// Genera URL con cache-buster basado en el timestamp del producto
+// Solo cambia cuando updated_at cambia, no en cada render
+const getImg = (tipo, url, updatedAt) => {
+  if (!url) return IMG_BY_TYPE[tipo] || IMG_BY_TYPE.Carne;
+  const ts = updatedAt ? new Date(updatedAt).getTime() : '';
+  const sep = url.includes('?') ? '&' : '?';
+  return ts ? `${url}${sep}v=${ts}` : url;
+};
 
 // Formato de precio colombiano
 const fmtPrecio = (v) => `$${Number(v).toLocaleString('es-CO')}`;
@@ -152,7 +159,12 @@ const [loadingCodigo, setLoadingCodigo] = useState(false);
       imagen: null,
       imagen_url: editData.imagen_url || '',
     });
-    setPreview(editData.imagen_url || null);
+    if (editData.imagen_url) {
+      const ts = editData.updated_at ? new Date(editData.updated_at).getTime() : Date.now();
+      setPreview(`${editData.imagen_url}?v=${ts}`);
+    } else {
+      setPreview(null);
+    }
 
   } else {
     setForm(EMPTY_FORM);
@@ -210,7 +222,11 @@ const handleSubmit = async e => {
 
     // Imagen
     if (form.imagen) {
+      // Nueva imagen seleccionada — se envía el archivo
       formData.append('imagen', form.imagen);
+    } else if (isEdit && form.imagen_url) {
+      // Sin nueva imagen — conservar la URL existente
+      formData.append('imagen_url', form.imagen_url);
     }
 
     if (isEdit) {
@@ -510,7 +526,8 @@ function ProductCard({ p, onEdit, onDelete, onAddToCart }) {
       {/* Imagen */}
       <div className="relative h-44 overflow-hidden bg-gray-100">
         <img
-          src={imgError ? IMG_BY_TYPE[p.tipo_nombre] || IMG_BY_TYPE.Carne : getImg(p.tipo_nombre, p.imagen_url)}
+          key={`img-${p.id_producto}-${p.updated_at || ''}`}
+          src={imgError ? IMG_BY_TYPE[p.tipo_nombre] || IMG_BY_TYPE.Carne : getImg(p.tipo_nombre, p.imagen_url, p.updated_at)}
           alt={p.nombre}
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
@@ -624,7 +641,7 @@ function TablaProductos({ productos, onEdit, onDelete, onAddToCart }) {
             {productos.map(p => {
               const badge = getBadge(p.tipo_nombre);
               return (
-                <tr key={p.id_producto} className="transition-colors"
+                <tr key={`${p.id_producto}-${p.updated_at || ""}`} className="transition-colors"
                     onMouseEnter={e=>e.currentTarget.style.backgroundColor=C.surface}
                     onMouseLeave={e=>e.currentTarget.style.backgroundColor='transparent'}>
                   <td className="px-4 py-3 font-bold text-xs" style={{ color:C.textMuted }}>{p.codigo}</td>
@@ -707,6 +724,8 @@ export default function ProductosPage() {
       if (search)     params.q   = search;
       const { data } = await api.get('/productos', { params });
       setProductos(data.data || []);
+      // DEBUG temporal — eliminar después
+      if (data.data?.[0]) console.log('[DEBUG] primer producto updated_at:', data.data[0].updated_at, 'imagen_url:', data.data[0].imagen_url);
     } catch (err) {
       toast(err.response?.data?.message || 'Error al cargar productos.', 'error');
     } finally { setLoading(false); }
@@ -818,7 +837,7 @@ export default function ProductosPage() {
           ) : vista === 'cards' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {productos.map(p => (
-                <ProductCard key={p.id_producto} p={p}
+                <ProductCard key={`${p.id_producto}-${p.updated_at || ''}`} p={p}
                   onEdit={openEdit} onDelete={openDelete} onAddToCart={handleAddToCart}/>
               ))}
             </div>

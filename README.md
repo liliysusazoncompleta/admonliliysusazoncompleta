@@ -27,6 +27,13 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 
 ## ✨ Últimas modificaciones implementadas
 
+- ✅ **Campo de descuento en factura** (`CarritoPage`): Se añadió soporte completo para descuentos sobre el subtotal de productos:
+  - Campo editable **Porcentaje de descuento** (opcional, 0–100%) en el formulario de checkout.
+  - Campo de solo lectura **Valor del descuento**, calculado automáticamente sobre el subtotal de productos.
+  - El descuento se refleja en el **resumen de venta** del formulario (solo visible cuando > 0).
+  - La **vista previa de factura / PDF** muestra la línea de descuento únicamente cuando se ha diligenciado un porcentaje.
+  - El total final se calcula como: `subtotal − descuento + domicilio`.
+  - Los campos `porcentaje_descuento` y `valor_descuento` se envían al backend al guardar la venta.
 - ✅ **Módulo Empleados**: Visualización, creación, actualización y activación/desactivación de empleados con CRUD completo.
 - ✅ **Módulo Usuarios**: Gestión completa de usuarios del sistema con roles (admin, operador, cocinero) y control de acceso. Vinculados a empleados por **cédula única**.
 - ✅ **Módulo Ventas** (v2): Visualización de todas las ventas registradas con filtros avanzados:
@@ -300,10 +307,12 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 | id_empleado_comision | INT | Referencia a `empleados` |
 | fecha_factura | DATE | Fecha de factura |
 | fecha_entrega | DATE | Fecha de entrega |
-| valor_factura | NUMERIC | Total factura |
+| valor_factura | NUMERIC | Total factura (con descuento y domicilio) |
 | porcentaje_comision | NUMERIC | % de comisión |
 | valor_comision | NUMERIC | Valor comisión |
 | valor_domicilio | NUMERIC | Valor de domicilio |
+| porcentaje_descuento | NUMERIC | % de descuento aplicado al subtotal (opcional) |
+| valor_descuento | NUMERIC | Valor monetario del descuento (opcional) |
 | observaciones | TEXT | Notas de la venta |
 | estado | CHARACTER VARYING | Estado: 'entregada', 'pendiente', 'cancelada' |
 | created_at | TIMESTAMP | Fecha creación |
@@ -349,6 +358,7 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 - Las tablas `TblProveedores` y `TblCompras` incluyen auditoría completa con `estado` (Activo/Inactivo).
 - Los proveedores se identifican de forma única por NIT.
 - Las compras se relacionan con proveedores mediante el NIT con integridad referencial (FK ON UPDATE CASCADE, ON DELETE RESTRICT).
+- Los campos `porcentaje_descuento` y `valor_descuento` en `ventas` son opcionales (NULL cuando no se aplica descuento). El descuento se aplica **sobre el subtotal de productos**, antes de sumar el domicilio.
 
 ---
 
@@ -539,6 +549,7 @@ node scripts/check.js
 
 ## ✨ Últimas mejoras
 
+- **Descuento en factura**: Campo de porcentaje de descuento (opcional) en el checkout. El valor equivalente se calcula automáticamente sobre el subtotal y aparece en la factura/PDF solo cuando se diligencia. El total final incorpora: `subtotal − descuento + domicilio`.
 - Se corrigió el flujo de checkout para evitar la pantalla en blanco al abrir "Continuar con la venta".
 - El exportado PDF ahora descarga como `cliente_YYYYMMDD.pdf`.
 - El botón "Guardar en Drive" abre la carpeta de Google Drive en una pestaña nueva.
@@ -616,10 +627,17 @@ node scripts/check.js
 - ✅ Auditoría completa de cada compra
 
 ### 🛒 Carrito de Compras
-- Agregar productos al carrito
-- Gestionar cantidades
-- Generar cotizaciones y facturas en PDF
-- Enviar por WhatsApp
+- ✅ Agregar productos al carrito desde el catálogo
+- ✅ Gestionar cantidades por producto
+- ✅ Seleccionar o crear cliente en el checkout
+- ✅ Seleccionar vendedor con cálculo automático de comisión
+- ✅ **Descuento opcional sobre el subtotal**: ingresar porcentaje → el valor se calcula automáticamente y aparece en la factura solo cuando se diligencia
+- ✅ Campo de valor de domicilio
+- ✅ Resumen de venta con subtotal, descuento y total final
+- ✅ Generar cotizaciones y facturas en PDF
+- ✅ Vista previa del documento antes de enviar
+- ✅ Enviar por WhatsApp
+- ✅ Guardar venta en el sistema
 
 ### 🎨 Portafolio de Clientes
 - ✅ Visualización profesional de productos y servicios

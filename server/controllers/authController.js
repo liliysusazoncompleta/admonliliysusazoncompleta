@@ -14,7 +14,7 @@ import bcrypt    from 'bcryptjs';
 import jwt       from 'jsonwebtoken';
 import { query } from '../config/db.js';
 
-const JWT_SECRET  = process.env.JWT_SECRET  || 'lili_secret_key';
+const JWT_SECRET  = process.env.JWT_SECRET  || 'lili_sazon_dev_secret_changeme_in_production';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────

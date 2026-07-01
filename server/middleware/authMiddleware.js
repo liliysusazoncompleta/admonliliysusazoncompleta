@@ -5,7 +5,7 @@
 
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'lili_sazon_dev_secret_changeme_in_production';
+const JWT_SECRET  = process.env.JWT_SECRET  || 'lili_sazon_dev_secret_changeme_in_production';
 
 /**
  * Verifica el Bearer token en el header Authorization.
@@ -13,7 +13,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'lili_sazon_dev_secret_changeme_in_
  */
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
+  // Log minimal info for debugging token issues (remove in production)
+  if (authHeader) console.debug('[authMiddleware] Authorization header received length=', authHeader.length);
   const token = authHeader && authHeader.split(' ')[1]; // "Bearer <token>"
+  if (token) console.debug('[authMiddleware] token length=', token.length);
 
   if (!token) {
     return res.status(401).json({ success: false, message: 'Token de acceso requerido.' });

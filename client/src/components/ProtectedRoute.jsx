@@ -2,11 +2,11 @@
  * @fileoverview Ruta protegida — redirige al login si no hay sesión activa
  */
 
-import { Navigate } from 'react-router-dom';
+  import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 
-export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+export default function ProtectedRoute({ children, roles }) {
+  const { isAuthenticated, loading, usuario } = useAuth();
 
   if (loading) {
     return (
@@ -27,5 +27,15 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (roles && !roles.includes(usuario?.rol)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 }
+
+

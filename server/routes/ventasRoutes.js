@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { verifyToken } from '../middleware/authMiddleware.js';
+import { verifyToken, requireRole } from '../middleware/authMiddleware.js';
 import { getVentas, createVenta, updateVentaEstado } from '../controllers/ventasController.js';
 
 const router = Router();
 router.use(verifyToken);
-router.get('/', getVentas);
-router.post('/', createVenta);
-router.patch('/:id/estado', updateVentaEstado);
+router.get('/', requireRole('admin'), getVentas);
+router.post('/', requireRole('admin'), createVenta);
+router.patch('/:id/estado', requireRole('admin'), updateVentaEstado);
 
 export default router;

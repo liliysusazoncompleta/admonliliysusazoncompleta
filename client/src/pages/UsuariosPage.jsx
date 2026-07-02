@@ -47,7 +47,7 @@ export default function UsuariosPage() {
   const [empleadoDetalle, setEmpleadoDetalle] = useState(null);
 
   const [formData, setFormData] = useState({
-    cedula: '', correo: '', password: '', rol: 'operador'
+    cedula: '', correo: '', password: '', rol: 'Operario'
   });
   const [formErrors, setFormErrors] = useState({});
 
@@ -70,7 +70,7 @@ export default function UsuariosPage() {
   }, [fetchUsuarios]);
 
   const resetForm = () => {
-    setFormData({ cedula: '', correo: '', password: '', rol: 'operador' });
+    setFormData({ cedula: '', correo: '', password: '', rol: 'Operario' });
     setFormErrors({});
     setEditData(null);
   };
@@ -312,10 +312,10 @@ export default function UsuariosPage() {
                   <select value={formData.rol} onChange={e => setFormData({ ...formData, rol: e.target.value })}
                     className="w-full mt-1 px-3 py-2 rounded-lg border"
                     style={{ borderColor: C.border, backgroundColor: C.container }}>
-                    <option value="operador">Operador</option>
-                    <option value="admin">Admin</option>
-                    <option value="cocina">Cocina</option>
-                    <option value="ventas">Ventas</option>
+                    <option value="Operario">Operario</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Cocina">Cocina</option>
+                    <option value="Vendedor">Vendedor</option>
                   </select>
                 </div>
               </div>

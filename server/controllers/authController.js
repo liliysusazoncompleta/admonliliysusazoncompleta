@@ -17,6 +17,14 @@ import { query } from '../config/db.js';
 const JWT_SECRET  = process.env.JWT_SECRET  || 'lili_sazon_dev_secret_changeme_in_production';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
 
+const normalizeRole = (r) => {
+  if (!r) return r;
+  const rr = String(r).toLowerCase();
+  if (rr === 'ventas') return 'vendedor';
+  if (rr === 'operador') return 'operario';
+  if (rr === 'administrador' || rr === 'adm' || rr === 'admin' || rr === 'administrator') return 'admin';
+  return rr;
+};
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 export const login = async (req, res) => {
   const { correo, password } = req.body;
@@ -64,23 +72,20 @@ export const login = async (req, res) => {
       [user.id_usuario]
     );
 
-    const token = jwt.sign(
-      {
-        id_usuario:      user.id_usuario,
-        correo:          user.correo,
-        rol:             user.rol,
-        empleado_nombre: user.empleado_nombre || null,
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES }
-    );
+    const rolNormalizado = normalizeRole(user.rol);
+    const token = jwt.sign({
+      id_usuario:      user.id_usuario,
+      correo:          user.correo,
+      rol:             rolNormalizado,
+      empleado_nombre: user.empleado_nombre || null,
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
     // Objeto que useAuth guarda en localStorage como 'lili_usuario'
     const usuarioPublico = {
       id_usuario:      user.id_usuario,
       cedula:          user.cedula,
       correo:          user.correo,
-      rol:             user.rol,
+      rol:             rolNormalizado,
       empleado_nombre: user.empleado_nombre || null,
     };
 
@@ -122,8 +127,11 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
     }
 
+    const row = rows[0];
+    // Normalizar rol antes de responder
+    if (row) row.rol = normalizeRole(row.rol);
     // MiCuentaPage espera data.data  (estructura: { success, data })
-    return res.json({ success: true, data: rows[0] });
+    return res.json({ success: true, data: row });
   } catch (err) {
     console.error('[auth/getMe]', err.message);
     return res.status(500).json({ success: false, message: 'Error interno del servidor.' });

@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../lib/api.js';
 import AppLayout, { Ic, IK } from '../components/AppLayout.jsx';
 import { useCart } from '../hooks/useCart.jsx';
+import { useAuth } from '../hooks/useAuth.jsx';
 
 /*const api = axios.create({ baseURL: '/api' });
 api.interceptors.request.use(cfg => {
@@ -513,7 +514,7 @@ function ConfirmModal({ open, producto, onConfirm, onClose, deleting }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // TARJETA DE PRODUCTO
 // ══════════════════════════════════════════════════════════════════════════════
-function ProductCard({ p, onEdit, onDelete, onAddToCart }) {
+function ProductCard({ p, onEdit, onDelete, onAddToCart, puedeEliminar }) {
   const badge = getBadge(p.tipo_nombre);
   const [imgError, setImgError] = useState(false);
 
@@ -542,11 +543,13 @@ function ProductCard({ p, onEdit, onDelete, onAddToCart }) {
             style={{ backgroundColor:C.white, color:C.primary }}>
             ✏️ Editar
           </button>
-          <button onClick={()=>onDelete(p)}
-            className="px-4 py-2 rounded-lg text-xs font-bold transition-all"
-            style={{ backgroundColor:'#ba1a1a', color:C.white }}>
-            🗑️ Eliminar
-          </button>
+          {puedeEliminar && (
+            <button onClick={()=>onDelete(p)}
+              className="px-4 py-2 rounded-lg text-xs font-bold transition-all"
+              style={{ backgroundColor:'#ba1a1a', color:C.white }}>
+              🗑️ Eliminar
+            </button>
+          )}
         </div>
       </div>
 
@@ -607,13 +610,15 @@ function ProductCard({ p, onEdit, onDelete, onAddToCart }) {
           ✏️ Editar
         </button>
         <div style={{ width:1, backgroundColor:C.border }}/>
-        <button onClick={()=>onDelete(p)}
-          className="flex-1 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-          style={{ color:'#ba1a1a' }}
-          onMouseEnter={e=>e.currentTarget.style.backgroundColor='#fff0f0'}
-          onMouseLeave={e=>e.currentTarget.style.backgroundColor='transparent'}>
-          🗑️ Eliminar
-        </button>
+        {puedeEliminar && (
+          <button onClick={()=>onDelete(p)}
+            className="flex-1 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            style={{ color:'#ba1a1a' }}
+            onMouseEnter={e=>e.currentTarget.style.backgroundColor='#fff0f0'}
+            onMouseLeave={e=>e.currentTarget.style.backgroundColor='transparent'}>
+            🗑️ Eliminar
+          </button>
+        )}
       </div>
     </div>
   );
@@ -622,7 +627,7 @@ function ProductCard({ p, onEdit, onDelete, onAddToCart }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // VISTA TABLA
 // ══════════════════════════════════════════════════════════════════════════════
-function TablaProductos({ productos, onEdit, onDelete, onAddToCart }) {
+function TablaProductos({ productos, onEdit, onDelete, onAddToCart, puedeEliminar }) {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border:`1px solid ${C.border}` }}>
       <div className="overflow-x-auto">
@@ -668,11 +673,13 @@ function TablaProductos({ productos, onEdit, onDelete, onAddToCart }) {
                         style={{ backgroundColor:'#eef3e4', color:C.primary }}>
                         Editar
                       </button>
-                      <button onClick={()=>onDelete(p)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                        style={{ backgroundColor:C.errorBg, color:C.error }}>
-                        Eliminar
-                      </button>
+                      {puedeEliminar && (
+                        <button onClick={()=>onDelete(p)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                          style={{ backgroundColor:C.errorBg, color:C.error }}>
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -702,6 +709,8 @@ export default function ProductosPage() {
   const { toasts, toast, removeToast }  = useToast();
   const searchTimer                     = useRef(null);
   const { addItem }                     = useCart();
+  const { usuario } = useAuth();
+const puedeEliminar = usuario?.rol === 'admin';
 
   const handleAddToCart = useCallback((p) => {
     addItem(p, 1);
@@ -838,12 +847,13 @@ export default function ProductosPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {productos.map(p => (
                 <ProductCard key={`${p.id_producto}-${p.updated_at || ''}`} p={p}
-                  onEdit={openEdit} onDelete={openDelete} onAddToCart={handleAddToCart}/>
+                  onEdit={openEdit} onDelete={openDelete} onAddToCart={handleAddToCart}
+                  puedeEliminar={puedeEliminar}/>
               ))}
             </div>
           ) : (
             <TablaProductos productos={productos}
-              onEdit={openEdit} onDelete={openDelete} onAddToCart={handleAddToCart}/>
+              onEdit={openEdit} onDelete={openDelete} onAddToCart={handleAddToCart} puedeEliminar={puedeEliminar}/>
           )}
 
           {/* ── Contador ───────────────────────────────────────────────── */}

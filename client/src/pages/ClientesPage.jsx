@@ -12,6 +12,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../lib/api.js';
 import AppLayout from '../components/AppLayout.jsx';
+import { useAuth } from '../hooks/useAuth.jsx'; 
+
 
 /*const api = axios.create({ baseURL: '/api' });
 api.interceptors.request.use(cfg => {
@@ -417,7 +419,7 @@ function ConfirmModal({ open, cliente, onConfirm, onClose, deleting }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // TARJETA DE CLIENTE
 // ══════════════════════════════════════════════════════════════════════════════
-function ClienteCard({ c, onView, onEdit, onDelete }) {
+function ClienteCard({ c, onView, onEdit, onDelete, puedeEliminar }) {
   const av = getAvatarColor(c.id_cliente);
   return (
     <div className="rounded-2xl flex flex-col transition-all duration-200"
@@ -469,13 +471,15 @@ function ClienteCard({ c, onView, onEdit, onDelete }) {
           ✏️ Editar
         </button>
         <div style={{ width:1, backgroundColor:C.border }}/>
-        <button onClick={()=>onDelete(c)}
-          className="flex-1 py-2.5 text-xs font-semibold transition-colors"
-          style={{ color:'#ba1a1a' }}
-          onMouseEnter={e=>e.currentTarget.style.backgroundColor='#fff0f0'}
-          onMouseLeave={e=>e.currentTarget.style.backgroundColor='transparent'}>
-          🗑️ Eliminar
-        </button>
+        {puedeEliminar && (
+          <button onClick={()=>onDelete(c)}
+            className="flex-1 py-2.5 text-xs font-semibold transition-colors"
+            style={{ color:'#ba1a1a' }}
+            onMouseEnter={e=>e.currentTarget.style.backgroundColor='#fff0f0'}
+            onMouseLeave={e=>e.currentTarget.style.backgroundColor='transparent'}>
+            🗑️ Eliminar
+          </button>
+        )}
       </div>
     </div>
   );
@@ -493,7 +497,7 @@ function InfoLine({ icon, value, clamp }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // VISTA TABLA
 // ══════════════════════════════════════════════════════════════════════════════
-function TablaClientes({ clientes, onView, onEdit, onDelete }) {
+function TablaClientes({ clientes, onView, onEdit, onDelete, puedeEliminar }) {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border:`1px solid ${C.border}` }}>
       <div className="overflow-x-auto">
@@ -550,11 +554,13 @@ function TablaClientes({ clientes, onView, onEdit, onDelete }) {
                         style={{ backgroundColor:'#eef3e4', color:C.primary }}>
                         Editar
                       </button>
-                      <button onClick={()=>onDelete(c)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                        style={{ backgroundColor:C.errorBg, color:C.error }}>
-                        Eliminar
-                      </button>
+                      {puedeEliminar && (
+                        <button onClick={()=>onDelete(c)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                          style={{ backgroundColor:C.errorBg, color:C.error }}>
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -581,6 +587,9 @@ export default function ClientesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting,     setDeleting]     = useState(false);
   const { toasts, toast, removeToast }  = useToast();
+const { usuario } = useAuth();
+const puedeEliminar = usuario?.rol === 'admin';
+
   const searchTimer                     = useRef(null);
 
   // ── Cargar clientes ────────────────────────────────────────────────────────
@@ -678,12 +687,14 @@ export default function ClientesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {clientes.map(c => (
                 <ClienteCard key={c.id_cliente} c={c}
-                  onView={openView} onEdit={openEdit} onDelete={openDelete}/>
+                  onView={openView} onEdit={openEdit} onDelete={openDelete}
+                  puedeEliminar={puedeEliminar}/>
               ))}
             </div>
           ) : (
             <TablaClientes clientes={clientes}
-              onView={openView} onEdit={openEdit} onDelete={openDelete}/>
+              onView={openView} onEdit={openEdit} onDelete={openDelete}
+              puedeEliminar={puedeEliminar} />
           )}
 
           {/* Contador */}

@@ -11,7 +11,7 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 
 - Gestión de productos e inventario
 - Gestión integral de proveedores y compras
-- Control de usuarios con roles `ADMIN`, `OPERADOR` y `COCINERO`
+- Control de usuarios con roles `ADMIN`, `OPERARIO` y `VENDEDOR`
 - Autenticación segura con JWT (usuarios vinculados a empleados por cédula)
 - Recuperación de contraseña por email
 - Subida de imágenes de productos
@@ -64,6 +64,14 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 - El nombre del archivo PDF se genera con el cliente y la fecha: `nombrecliente_yyyymmdd.pdf`.
 - Los datos adicionales de cliente (`teléfono alterno`, `NIT/CC`, `dirección alterna`, `observaciones`) se muestran en la factura siempre que estén disponibles.
 
+- ✅ **Control de visibilidad del menú principal según permisos de sesión**:
+  - El frontend ahora oculta automáticamente las opciones del menú principal que el usuario en sesión no tiene permiso de ver. La lógica se implementó en `client/src/components/AppLayout.jsx` y utiliza la información de `usuario.rol` expuesta por `useAuth`.
+  - El backend normaliza los roles (por ejemplo: `ventas` → `vendedor`, `operador` → `operario`, variantes de administrador → `admin`) en `server/controllers/authController.js`, por lo que las comprobaciones en el cliente son en minúsculas.
+  - Archivos modificados:
+    - `client/src/components/AppLayout.jsx` — filtrado de `NAV_ITEMS` según rol y renderizado de `itemsVisibles`.
+    - `client/src/hooks/useAuth.jsx` — restauración de sesión desde `localStorage` y `usuario` expuesto al cliente.
+  - Resultado: usuarios con roles restringidos (ej. `vendedor`, `operario`) no verán módulos como `ventas`, `empleados`, `usuarios`, `proveedores` o `compras` según la configuración de permisos.
+
 ---
 
 ## 🧱 Tecnologías usadas
@@ -108,11 +116,14 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 │       ├── index.css                       # Estilos globales
 │       │
 │       ├── components/                     # Componentes reutilizables
-│       │   ├── (componentes compartidos)
+│       │   ├── AppLayout.jsx              # Layout principal (Sidebar + Topbar) — control de menú por rol
+│       │   ├── ProtectedRoute.jsx         # Ruta protegida por autenticación/roles
+│       │   ├── (otros componentes compartidos)
 │       │   └── ...
 │       │
 │       ├── hooks/                          # Custom hooks
-│       │   ├── (hooks personalizados)
+│       │   ├── useAuth.jsx                 # Contexto de autenticación (restauración de sesión)
+│       │   ├── useCart.jsx                 # Hook del carrito (estado y cálculos)
 │       │   └── ...
 │       │
 │       └── pages/                          # Páginas/vistas
@@ -197,9 +208,11 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 
 ## 🔐 Roles del sistema
 
-- `admin` — acceso completo a todos los módulos incluida administración.
-- `operador` — acceso a gestión de ventas, gastos, clientes, productos y carrito.
-- `ventas` — acceso limitado a gestión de poductos, carrito de compras.
+- `Admin` — acceso completo a todos los módulos y paneles administrativos.
+- `Operario` — acceso de apoyo operativo: gestión de productos, clientes y operaciones de apoyo (no ve módulos de administración como `usuarios`).
+- `Vendedor` — acceso restringido orientado a ventas: catálogo, carrito y ventas asignadas.
+
+Nota: los roles se normalizan en el backend y se comparan en minúsculas en el cliente. Si necesitas ajustar las restricciones visibles en el menú, edita `client/src/components/AppLayout.jsx` y la constante `OCULTOS_PARA`.
 
 ---
 

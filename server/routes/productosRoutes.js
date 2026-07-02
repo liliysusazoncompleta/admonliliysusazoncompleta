@@ -3,7 +3,7 @@
  * @module server/routes/productosRoutes
  */
 import { Router } from 'express';
-import { verifyToken } from '../middleware/authMiddleware.js';
+import { verifyToken, requireRole } from '../middleware/authMiddleware.js';
 import {
   getTipos, getProductos, getProductoById,
   createProducto, updateProducto, deleteProducto,
@@ -23,6 +23,7 @@ router.get('/tipos',               getTipos);
 router.get('/siguiente-codigo',    getSiguienteCodigo);
 router.get('/',                    getProductos);
 router.get('/:id',                 getProductoById);
+router.delete('/:id', requireRole('admin'), deleteProducto);
 
 router.post(
   '/',
@@ -35,7 +36,5 @@ router.put(
   uploadProducto.single('imagen'),
   updateProducto
 );
-
-router.delete('/:id',              deleteProducto);
 
 export default router;

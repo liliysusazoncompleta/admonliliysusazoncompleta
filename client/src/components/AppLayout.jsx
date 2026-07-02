@@ -58,7 +58,15 @@ const NAV_ITEMS = [
 ];
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
-function Sidebar({ activeKey, onLogout, isOpen, onClose }) {
+function Sidebar({ activeKey, onLogout, isOpen, onClose, usuario }) {
+  // Roles que no deben ver ciertos módulos
+  const OCULTOS_PARA = {
+    vendedor: ['ventas', 'empleados', 'usuarios'],
+    // El rol 'operario' no debe ver: proveedores, compras, usuarios y ventas
+    operario: ['proveedores', 'compras', 'usuarios', 'ventas', 'empleados'],
+  };
+  const rol = (usuario?.rol || '').toLowerCase();
+  const itemsVisibles = NAV_ITEMS.filter(i => !(OCULTOS_PARA[rol] || []).includes(i.key));
   const navigate = useNavigate();
 
   const handleNav = (path) => {
@@ -103,8 +111,9 @@ function Sidebar({ activeKey, onLogout, isOpen, onClose }) {
 
       {/* Nav */}
       <nav style={{ flex:1, overflowY:'auto', padding:'12px 0' }}>
-        {NAV_ITEMS.map(({ key, label, ik, path }) => {
+        {itemsVisibles.map(({ key, label, ik, path, roles }) => {
           const on = activeKey === key;
+          if (roles && !roles.includes(rol)) return null;
           return (
             <button key={key} onClick={() => handleNav(path)}
               style={{
@@ -308,6 +317,7 @@ export default function AppLayout({ children, activeKey = 'dashboard', searchVal
 
       {/* Sidebar */}
       <Sidebar
+      usuario={usuario}  
         activeKey={activeKey}
         onLogout={handleLogout}
         isOpen={sidebarOpen}

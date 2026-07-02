@@ -33,13 +33,17 @@ export default function App() {
           <Route path="/clientes"        element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
           <Route path="/carrito"         element={<ProtectedRoute><CarritoPage /></ProtectedRoute>} />
           <Route path="/carta"           element={<ProtectedRoute><CartaPage /></ProtectedRoute>} />
-          <Route path="/empleados"       element={<ProtectedRoute><EmpleadosPage /></ProtectedRoute>} />
-          <Route path="/usuarios"        element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
-          <Route path="/ventas"          element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />
+          <Route path="/empleados"       element={<ProtectedRoute roles={['admin']}><EmpleadosPage /></ProtectedRoute>} />
+          <Route path="/usuarios"        element={<ProtectedRoute roles={['admin']}><UsuariosPage /></ProtectedRoute>} />
+          <Route path="/ventas"          element={<ProtectedRoute roles={['admin']}><VentasPage /></ProtectedRoute>} />
           <Route path="/compras"         element={<ProtectedRoute><ComprasPage /></ProtectedRoute>} />
           <Route path="/mi-cuenta"       element={<ProtectedRoute><MiCuentaPage /></ProtectedRoute>} />
           <Route path="/portafolio"      element={<ProtectedRoute><PortafolioPage /></ProtectedRoute>} />
          <Route path="/proveedores" element={<ProtectedRoute><ProveedoresPage /></ProtectedRoute>} />
+         <Route path="/ventas"    element={<ProtectedRoute roles={['admin']}><VentasPage /></ProtectedRoute>} />
+<Route path="/empleados" element={<ProtectedRoute roles={['admin']}><EmpleadosPage /></ProtectedRoute>} />
+<Route path="/usuarios"  element={<ProtectedRoute roles={['admin']}><UsuariosPage /></ProtectedRoute>} />
+
 
           <Route path="*"                element={<Navigate to="/login" replace />} />
         </Routes>

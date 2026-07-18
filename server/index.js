@@ -15,20 +15,31 @@ import { testConnection } from './config/db.js';
 import tipoProductoRoutes from "./routes/tipoProductoRoutes.js";
 import proveedoresRoutes from './routes/proveedoresRoutes.js';
 import comprasRoutes from './routes/comprasRoutes.js';
+import catalogoPublicoRoutes from './routes/catalogoPublico.routes.js';
 
 import path from 'path';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+const ALLOWED_ORIGINS = new Set([
+  process.env.CLIENT_URL || 'http://localhost:5173',
+  'https://liliysusazoncompleta.github.io',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+]);
+
+const isLocalDevOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+
 app.use(helmet());
 app.use(cors({
-  origin: [
-    process.env.CLIENT_URL || 'http://localhost:5173',
-    'https://liliysusazoncompleta.github.io',
-    'http://localhost:3000',
-    'http://127.0.0.1:5173',
-  ],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.has(origin) || isLocalDevOrigin(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origen no permitido por CORS: ${origin}`));
+  },
   credentials: true,
   methods:     ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -57,6 +68,7 @@ app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/compras', comprasRoutes);
 app.use('/api/tipo-producto', tipoProductoRoutes);
 app.use('/api/admin', seedRoutes);
+app.use('/api/catalogo', catalogoPublicoRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 app.use((err, _req, res, _next) => {

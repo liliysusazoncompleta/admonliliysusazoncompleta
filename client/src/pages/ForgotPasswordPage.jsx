@@ -26,6 +26,7 @@ const SpinnerIcon = () => (
 );
 
 export default function ForgotPasswordPage() {
+  const apiBase = import.meta.env.VITE_API_URL || '/api';
   const [correo,  setCorrro]  = useState('');
   const [loading, setLoading] = useState(false);
   const [sent,    setSent]    = useState(false);
@@ -58,7 +59,7 @@ export default function ForgotPasswordPage() {
       if (serverMsg) {
         setError(`Error del servidor (${status}): ${serverMsg}`);
       } else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-        setError('No se puede conectar al servidor. Verifica que el backend esté corriendo en http://localhost:3001');
+        setError(`No se puede conectar al servidor. Verifica que el backend esté corriendo y accesible desde: ${apiBase}`);
       } else {
         setError(`Error inesperado: ${err.message}`);
       }

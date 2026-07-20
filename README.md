@@ -71,6 +71,11 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
     - `client/src/components/AppLayout.jsx` — filtrado de `NAV_ITEMS` según rol y renderizado de `itemsVisibles`.
     - `client/src/hooks/useAuth.jsx` — restauración de sesión desde `localStorage` y `usuario` expuesto al cliente.
   - Resultado: usuarios con roles restringidos (ej. `vendedor`, `operario`) no verán módulos como `ventas`, `empleados`, `usuarios`, `proveedores` o `compras` según la configuración de permisos.
+- ✅ **Sincronización automática de imágenes de productos**:
+  - Se incorporó el script `server/scripts/sync-images.js` para relacionar productos con fotos por similitud de nombre.
+  - Comando de prueba (sin cambios en BD): `pnpm sync-images` (dentro de `server`).
+  - Comando para aplicar cambios en `productos.imagen_url`: `pnpm sync-images:apply`.
+  - Las imágenes del catálogo se sirven desde `GET /productos/<archivo>` usando la carpeta `server/public/productos`.
 
 ---
 
@@ -155,10 +160,18 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
     │   ├── (servicios por módulo)
     │   └── ...
     │
-    └── uploads/                            # Almacenamiento de archivos
-        └── productos/                      # Imágenes de productos
-            ├── (imágenes cargadas)
-            └── ...
+    ├── scripts/                            # Scripts de backend
+    │   ├── run_seed_node.js
+    │   └── sync-images.js                  # Sincroniza imagen_url con archivos de fotos
+    │
+    ├── public/
+    │   └── productos/                      # Carpeta oficial de fotos del catálogo
+    │       ├── README.md
+    │       └── (imágenes .jpg/.png/.webp)
+    │
+    └── uploads/                            # Archivos subidos por formularios (Multer)
+      └── productos/
+        └── ...
 ```
 
 ### 📂 Detalle de carpetas principales
@@ -474,10 +487,11 @@ Libera el puerto para que el servidor pueda arrancar de nuevo.
 
 ## 🌐 URLs principales
 
-- Frontend: `http://localhost:5173`
+- Frontend: `http://localhost:5173/admonliliysusazoncompleta/`
 - Backend: `http://localhost:3001`
 - Health check: `http://localhost:3001/api/health`
-- Imágenes: `http://localhost:3001/uploads/productos/`
+- Imágenes catálogo (archivos en `server/public/productos`): `http://localhost:3001/productos/<archivo>`
+- Imágenes subidas por formulario (Multer): `http://localhost:3001/uploads/productos/<archivo>`
 
 ---
 
@@ -527,6 +541,16 @@ Ejecuta el script de diagnóstico para validar dependencias y conexión:
 ```powershell
 node scripts/check.js
 ```
+
+### Sincronizar imágenes con productos
+
+```powershell
+cd server
+pnpm sync-images
+pnpm sync-images:apply
+```
+
+`sync-images` solo genera reporte. `sync-images:apply` actualiza `imagen_url` en la base de datos.
 
 ---
 
@@ -685,7 +709,8 @@ node scripts/check.js
 ## 📄 Notas
 
 - El backend usa ESM (`import/export`).
-- Las imágenes se guardan localmente en `server/uploads/productos/`.
+- Para catálogo, las imágenes oficiales se administran en `server/public/productos/`.
+- Las cargas desde formularios administrativos siguen usando `server/uploads/productos/`.
 - Los productos usan soft delete con `activo = false`.
 - Los módulos de administración (Empleados, Usuarios, Ventas, Proveedores, Compras) requieren autenticación.
 - Las migraciones de proveedores y compras son idempotentes (usan `IF NOT EXISTS`).

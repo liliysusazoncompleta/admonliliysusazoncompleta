@@ -16,6 +16,7 @@ import tipoProductoRoutes from "./routes/tipoProductoRoutes.js";
 import proveedoresRoutes from './routes/proveedoresRoutes.js';
 import comprasRoutes from './routes/comprasRoutes.js';
 import catalogoPublicoRoutes from './routes/catalogoPublico.routes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 import path from 'path';
 
@@ -66,6 +67,7 @@ app.use('/api/empleados',    empleadosRoutes);
 app.use('/api/usuarios',     usuariosRoutes);
 app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/compras', comprasRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tipo-producto', tipoProductoRoutes);
 app.use('/api/admin', seedRoutes);
 app.use('/api/catalogo', catalogoPublicoRoutes);

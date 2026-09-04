@@ -43,7 +43,7 @@ export const IK = {
 };
 
 const NAV_ITEMS = [
-  { key:'dashboard', label:'Inicio',    ik:'dashboard', path:'/dashboard' },
+  { key:'dashboard', label:'Dashboard', ik:'dashboard', path:'/dashboard' },
   { key:'clientes',  label:'Clientes',  ik:'clientes',  path:'/clientes'  },
   { key:'productos', label:'Productos', ik:'productos', path:'/productos' },
   { key:'carrito',   label:'Carrito',   ik:'cart',      path:'/carrito'   },

@@ -1,368 +1,402 @@
 /**
- * @fileoverview Dashboard Principal — Lili y su Sazón Completa
+ * @fileoverview Dashboard — Balance de ventas vs compras por mes/año
  * @module client/src/pages/DashboardPage
  */
-
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
-import logoLili from '../assets/LOGO_LILI.jpg';
-import imgMenu from '../assets/LiLicocina.png';
-//import AppLayout, { Ic, IK } from '../components/AppLayout.jsx'; inicialmente esta linea
-import AppLayout from '../components/AppLayout.jsx'; //nueva linea
+import api from '../lib/api.js';
+import AppLayout from '../components/AppLayout.jsx';
 
-
-// ── Paleta ────────────────────────────────────────────────────────────────────
 const C = {
-  primary:     '#476500',
-  primary2:    '#5d7f13',
-  surface:     '#fafaed',
-  container:   '#eeefe2',
-  white:       '#ffffff',
-  text:        '#1a1c15',
-  textMuted:   '#747967',
-  textSub:     '#444939',
-  orange:      '#944a00',
-  orangeLight: '#fc8f34',
-  border:      '#e2e3d6',
+  primary: '#476500',
+  primary2: '#5d7f13',
+  surface: '#fafaed',
+  container: '#eeefe2',
+  white: '#ffffff',
+  text: '#1a1c15',
+  textMuted: '#747967',
+  textSub: '#444939',
+  orange: '#944a00',
+  border: '#e2e3d6',
+  error: '#ba1a1a',
+  errorBg: '#ffdad6',
+  successBg: '#eef3e4',
 };
 
-// ── Icono SVG genérico ────────────────────────────────────────────────────────
-const Ic = ({ d, size = 20, stroke, fill = 'none', sw = 1.6 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill}
-       stroke={stroke || C.textMuted} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-    {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p}/>)}
-  </svg>
-);
-
-// ── Rutas de iconos ───────────────────────────────────────────────────────────
-const IK = {
-  dashboard:     ['M3 3h7v7H3z','M14 3h7v7h-7z','M14 14h7v7h-7z','M3 14h7v7H3z'],
-  clientes:      ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2','M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z','M23 21v-2a4 4 0 0 0-3-3.87','M16 3.13a4 4 0 0 1 0 7.75'],
-  productos:     ['M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z','M3.27 6.96L12 12.01l8.73-5.05','M12 22.08V12'],
-  facturacion:   ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M16 13H8','M16 17H8','M10 9H8'],
-  cart:          ['M3 3h2l.4 2M7 13h10l4-8H5.4','M7 13L5.4 5','M7 13l-1.7 4.6A1 1 0 0 0 6.25 19H19','M10 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z','M18 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
-  ventas:        ['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z','M12 6v6l4 2'],
-  empleados:     ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2','M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8z','M19 8a3 3 0 0 1 0 6','M22 21v-2a4 4 0 0 0-3-3.87'],
-  usuarios:      ['M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2','M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'],
-  reportes:      ['M18 20V10','M12 20V4','M6 20v-6'],
-  config:        ['M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'],
-  search:        ['M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0'],
-  bell:          ['M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9','M13.73 21a2 2 0 0 1-3.46 0'],
-  logout:        ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4','M16 17l5-5-5-5','M21 12H9'],
-  arrow:         ['M5 12h14','M12 5l7 7-7 7'],
-  heart:         ['M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'],
-  menu:          ['M3 12h18','M3 6h18','M3 18h18'],
-};
-
-// ── Menú de navegación ────────────────────────────────────────────────────────
-const NAV = [
-  { key: 'dashboard',   label: 'Dashboard',     ik: 'dashboard'   },
-  { key: 'clientes',    label: 'Clientes',       ik: 'clientes'    },
-  { key: 'productos',   label: 'Productos',      ik: 'productos'   },
-  { key: 'facturacion', label: 'Facturación',    ik: 'facturacion' },
-  { key: 'ventas',      label: 'Ventas',         ik: 'ventas'      },
-  { key: 'empleados',   label: 'Empleados',      ik: 'empleados'   },
-  { key: 'usuarios',    label: 'Usuarios',       ik: 'usuarios'    },
-  { key: 'reportes',    label: 'Reportes',       ik: 'reportes'    },
-  { key: 'config',      label: 'Configuración',  ik: 'config'      },
+const MESES = [
+  { value: '', label: 'Todo el año' },
+  { value: '01', label: 'Enero' },
+  { value: '02', label: 'Febrero' },
+  { value: '03', label: 'Marzo' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Mayo' },
+  { value: '06', label: 'Junio' },
+  { value: '07', label: 'Julio' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Septiembre' },
+  { value: '10', label: 'Octubre' },
+  { value: '11', label: 'Noviembre' },
+  { value: '12', label: 'Diciembre' },
 ];
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SIDEBAR
-// ══════════════════════════════════════════════════════════════════════════════
-function Sidebar({ active, onNav, onLogout }) {
+const MESES_NOMBRE = MESES.reduce((acc, m) => {
+  if (m.value) acc[parseInt(m.value, 10)] = m.label;
+  return acc;
+}, {});
+
+const fmt = (n) =>
+  `$${Number(n || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+function StatCard({ label, value, sub, color, bg }) {
   return (
-    <aside className="hidden lg:flex flex-col h-screen sticky top-0 flex-shrink-0"
-           style={{ width: 210, backgroundColor: C.white, borderRight: `1px solid ${C.border}` }}>
-
-      {/* Marca */}
-      <div className="flex flex-col items-center py-6 px-4"
-           style={{ borderBottom: `1px solid ${C.border}` }}>
-            <div className="w-10 h-10 rounded-xl overflow-hidden">
-            <img src={logoLili} alt="Logo" className="w-full h-full object-cover"/>
-      </div> 
-        <p className="font-extrabold text-sm mt-3 text-center leading-tight" style={{ color: C.text }}>
-          Lili y su Sazón
-        </p>
-        <p className="text-xs font-medium mt-0.5" style={{ color: C.textMuted }}>Cocinamos con amor</p>
-      </div>
-
-      {/* Navegación */}
-      <nav className="flex-1 py-4 overflow-y-auto">
-        {NAV.map(({ key, label, ik }) => {
-          const on = active === key;
-          return (
-            <button key={key} onClick={() => onNav(key)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-left relative transition-colors duration-150"
-              style={{ backgroundColor: on ? '#eef3e4' : 'transparent', color: on ? C.primary : C.textMuted }}
-              onMouseEnter={(e) => { if (!on) e.currentTarget.style.backgroundColor = C.container; }}
-              onMouseLeave={(e) => { if (!on) e.currentTarget.style.backgroundColor = 'transparent'; }}>
-              {on && <div className="absolute right-0 top-1.5 bottom-1.5 w-1 rounded-l-full"
-                          style={{ backgroundColor: C.primary }}/>}
-              <Ic d={IK[ik]} size={17} stroke={on ? C.primary : C.textMuted}/>
-              <span className="text-sm font-semibold">{label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Cerrar sesión */}
-      <div className="py-4 px-3" style={{ borderTop: `1px solid ${C.border}` }}>
-        <button onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-150"
-          style={{ color: C.textMuted }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor='#fff0f0'; e.currentTarget.style.color='#ba1a1a'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor='transparent'; e.currentTarget.style.color=C.textMuted; }}>
-          <Ic d={IK.logout} size={17} stroke="currentColor"/>
-          <span className="text-sm font-semibold">Cerrar sesión</span>
-        </button>
-      </div>
-    </aside>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TOPBAR
-// ══════════════════════════════════════════════════════════════════════════════
-function Topbar({ usuario }) {
-  const [q, setQ] = useState('');
-  const rolLabel  = usuario?.rol || 'USUARIO';
-  const inicial   = (usuario?.correo?.[0] || 'U').toUpperCase();
-
-  return (
-    <header className="sticky top-0 z-20 flex items-center gap-4 px-6"
-            style={{ backgroundColor: C.white, borderBottom: `1px solid ${C.border}`, height: 60 }}>
-
-      <h1 className="font-bold text-sm flex-shrink-0 hidden sm:block" style={{ color: C.text }}>
-        Lili y su Sazón Completa
-      </h1>
-
-      {/* Buscador */}
-      <div className="flex-1 max-w-md mx-auto relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-          <Ic d={IK.search} size={15} stroke={C.textMuted}/>
-        </span>
-        <input type="text" placeholder="Buscar..." value={q} onChange={e=>setQ(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 rounded-lg text-sm outline-none transition-all"
-          style={{ backgroundColor: C.container, color: C.text, border:'2px solid transparent', fontFamily:'Manrope,sans-serif' }}
-          onFocus={e=>{e.target.style.backgroundColor=C.white;e.target.style.border=`2px solid ${C.primary}`;}}
-          onBlur={e=>{e.target.style.backgroundColor=C.container;e.target.style.border='2px solid transparent';}}/>
-      </div>
-
-      {/* Acciones */}
-      <div className="flex items-center gap-2.5 flex-shrink-0">
-        <button className="relative p-2 rounded-lg" style={{ backgroundColor: C.container }}>
-          <Ic d={IK.bell} size={17} stroke={C.textMuted}/>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                style={{ backgroundColor: C.orangeLight }}/>
-        </button>
-        <span className="text-xs font-bold hidden md:block" style={{ color: C.textMuted }}>
-          {rolLabel}
-        </span>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
-             style={{ background: `linear-gradient(135deg,${C.primary},${C.primary2})` }}>
-          {inicial}
-        </div>
-      </div>
-    </header>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// MÓDULOS
-// ══════════════════════════════════════════════════════════════════════════════
-const MODS = [
-  {
-    key:'productos', title:'Productos', ik:'productos', color:C.primary, bg:'#eef3e4', hi:false, cta:'Acceder',
-    desc:'Crea, edita y organiza el catálogo de platillos. Controla códigos, tipos, presentaciones, precios e imágenes de cada producto.',
-  },
-  {
-    key:'clientes', title:'Clientes', ik:'clientes', color:C.primary, bg:'#eef3e4', hi:false, cta:'Acceder',
-    desc:'Registra y gestiona el directorio de clientes. Consulta datos de contacto, historial de pedidos y preferencias de cada cliente.',
-  },
-  {
-    key:'carrito', title:'Carrito', ik:'cart', color:C.primary, bg:'#eef3e4', hi:false, cta:'Acceder',
-    desc:'Agrega productos al carrito, ajusta cantidades, genera cotizaciones en PDF y envíalas por WhatsApp a tus clientes.',
-  },
-  {
-    key:'ventas', title:'Ventas', ik:'ventas', color:C.orange, bg:'#fff3eb', hi:true, cta:'Nuevo Pedido',
-    desc:'Registra nuevos pedidos, consulta el historial de ventas, filtra por fecha y vendedor, y cambia el estado de cada entrega.',
-  },
-];
-
-function ModCard({ mod, onNav }) {
-  return (
-    <div onClick={() => onNav(mod.key)} className="rounded-2xl p-5 flex flex-col gap-3 cursor-pointer transition-all duration-200"
-         style={{ backgroundColor: C.white, border: `1px solid ${C.border}`, boxShadow:'0 2px 8px rgba(26,28,21,0.05)' }}
-         onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(26,28,21,0.10)';}}
-         onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 2px 8px rgba(26,28,21,0.05)';}}>
-      <div className="flex items-start justify-between">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-             style={{ backgroundColor: mod.bg }}>
-          <Ic d={IK[mod.ik]} size={19} stroke={mod.color}/>
-        </div>
-        <div className="w-10 h-10 rounded-full opacity-[0.08]" style={{ backgroundColor: mod.color }}/>
-      </div>
-      <div className="flex-1">
-        <h3 className="font-bold text-sm" style={{ color: C.text }}>{mod.title}</h3>
-        <p className="text-xs mt-1 leading-relaxed" style={{ color: C.textMuted }}>{mod.desc}</p>
-      </div>
-      <button className="flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
-              style={{ color: mod.hi ? C.orange : C.primary }}>
-        {mod.cta}
-        {mod.hi
-          ? <span className="w-4 h-4 rounded-full border-2 flex items-center justify-center text-xs leading-none"
-                  style={{ borderColor: C.orange }}>+</span>
-          : <Ic d={IK.arrow} size={14} stroke={C.primary}/>}
-      </button>
+    <div className="rounded-2xl p-4 border" style={{ backgroundColor: C.white, borderColor: C.border }}>
+      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.textMuted }}>{label}</p>
+      <p className="text-2xl font-extrabold mt-1" style={{ color: color || C.text }}>{value}</p>
+      {sub != null && (
+        <p className="text-xs mt-1 font-medium" style={{ color: C.textMuted }}>{sub}</p>
+      )}
+      {bg && <div className="h-1 rounded-full mt-3" style={{ backgroundColor: bg }} />}
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// RESUMEN DEL DÍA
-// ══════════════════════════════════════════════════════════════════════════════
-function ResumenHoy() {
-  const items = [
-    { label:'Pedidos Nuevos', val:8,            color:C.text    },
-    { label:'En Preparación', val:4,             color:C.orange  },
-    { label:'Completados',    val:12,            color:C.primary },
-    { label:'Ingresos Est.',  val:'$4,250.00',  color:C.text    },
-  ];
+function BalanceAdmin() {
+  const now = new Date();
+  const [filtroAno, setFiltroAno] = useState(String(now.getFullYear()));
+  const [filtroMes, setFiltroMes] = useState(String(now.getMonth() + 1).padStart(2, '0'));
+  const [verCanceladas, setVerCanceladas] = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const anos = [String(now.getFullYear() - 1), String(now.getFullYear()), String(now.getFullYear() + 1)];
+
+  const fetchBalance = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = {};
+      if (filtroAno) params.ano = filtroAno;
+      if (filtroMes) params.mes = parseInt(filtroMes, 10);
+      const { data: res } = await api.get('/dashboard/balance', { params });
+      setData(res.data);
+    } catch (err) {
+      setData(null);
+      setError(err.response?.data?.message || 'No se pudo cargar el balance.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filtroAno, filtroMes]);
+
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
+
+  const periodoLabel = filtroMes
+    ? `${MESES.find(m => m.value === filtroMes)?.label || ''} ${filtroAno}`
+    : `Año ${filtroAno}`;
+
+  const balance = data?.balance;
+  const resultadoColor = balance?.es_perdida
+    ? C.error
+    : balance?.es_ganancia
+      ? C.primary
+      : C.textSub;
+
+  const resultadoLabel = balance?.es_perdida
+    ? 'Pérdida'
+    : balance?.es_ganancia
+      ? 'Ganancia'
+      : 'Equilibrio';
+
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: C.white, border:`1px solid ${C.border}` }}>
-      <h3 className="font-bold text-sm mb-5" style={{ color: C.text }}>Resumen de Hoy</h3>
-      <div className="space-y-4">
-        {items.map(({ label, val, color }) => (
-          <div key={label} className="flex items-center justify-between">
-            <span className="text-sm font-medium" style={{ color: C.textMuted }}>{label}</span>
-            <span className="text-sm font-extrabold" style={{ color }}>{val}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-5 pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
-        <div className="flex justify-between mb-2">
-          <span className="text-xs font-medium" style={{ color: C.textMuted }}>Eficiencia del día</span>
-          <span className="text-xs font-bold" style={{ color: C.primary }}>75%</span>
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="flex-1">
+          <h2 className="font-extrabold text-2xl md:text-3xl" style={{ color: C.text }}>
+            Dashboard de balance
+          </h2>
+          <p className="text-sm font-medium mt-1" style={{ color: C.textMuted }}>
+            Compara ventas entregadas vs compras del período para detectar ganancias o pérdidas
+          </p>
         </div>
-        <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: C.container }}>
-          <div className="h-full rounded-full" style={{ width:'75%', background:`linear-gradient(90deg,${C.primary},${C.primary2})` }}/>
+      </div>
+
+      {/* Filtros */}
+      <div className="rounded-2xl p-4 border grid grid-cols-1 md:grid-cols-4 gap-3"
+           style={{ backgroundColor: C.white, borderColor: C.border }}>
+        <div>
+          <label className="text-xs font-semibold" style={{ color: C.textMuted }}>Año</label>
+          <select value={filtroAno} onChange={e => setFiltroAno(e.target.value)}
+            className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
+            style={{ borderColor: C.border, backgroundColor: C.container }}>
+            {anos.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold" style={{ color: C.textMuted }}>Mes</label>
+          <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)}
+            className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
+            style={{ borderColor: C.border, backgroundColor: C.container }}>
+            {MESES.map(m => <option key={m.value || 'all'} value={m.value}>{m.label}</option>)}
+          </select>
+        </div>
+        <div className="flex items-end">
+          <label className="flex items-center gap-2 px-3 py-2 rounded-lg w-full cursor-pointer"
+                 style={{ backgroundColor: verCanceladas ? C.errorBg : C.container }}>
+            <input
+              type="checkbox"
+              checked={verCanceladas}
+              onChange={e => setVerCanceladas(e.target.checked)}
+              className="accent-[#ba1a1a]"
+            />
+            <span className="text-sm font-semibold" style={{ color: verCanceladas ? C.error : C.text }}>
+              Ver ventas canceladas
+            </span>
+          </label>
+        </div>
+        <div className="flex items-end">
+          <button type="button" onClick={() => {
+            setFiltroAno(String(now.getFullYear()));
+            setFiltroMes(String(now.getMonth() + 1).padStart(2, '0'));
+            setVerCanceladas(false);
+          }}
+            className="w-full px-3 py-2 rounded-lg text-sm font-semibold"
+            style={{ backgroundColor: C.container, color: C.text }}>
+            Período actual
+          </button>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MENÚ ESPECIAL DEL DÍA
-// ══════════════════════════════════════════════════════════════════════════════
-function MenuEspecial() {
-  return (
-    <div className="rounded-2xl overflow-hidden relative" style={{ minHeight: 400 }}>
-      <img src={imgMenu}
-           alt="LiLicocina.png" className="absolute inset-0 w-full h-full object-cover"/>
-     
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
-// ══════════════════════════════════════════════════════════════════════════════
-export default function DashboardPage() {
-  const { usuario } = useAuth();
-  const navigate    = useNavigate();
-  const [search, setSearch] = useState('');
-  const [tiposProducto, setTiposProducto] = useState([]);
-  const obtenerTiposProducto = async () => {
-
-  try {
-
-    const response = await fetch(
-      'http://localhost:3001/api/tipo-producto'
-    );
-
-    const data = await response.json();
-
-    setTiposProducto(data);
-
-  } catch (error) {
-
-    console.error(
-      'Error cargando tipos de producto',
-      error
-    );
-  }
-};
-useEffect(() => {
-  obtenerTiposProducto();
-}, []);
-
-  const fechaHoy = new Date().toLocaleDateString('es-CO', {
-    weekday:'long', year:'numeric', month:'long', day:'numeric'
-  });
-
-  return (
-    <AppLayout activeKey="dashboard" searchValue={search} onSearch={setSearch}>
-      <div className="p-5 md:p-6 space-y-5">
-
-          {/* Banner bienvenida */}
-          <div className="rounded-2xl p-5 md:p-6 flex flex-col sm:flex-row sm:items-center gap-4"
-               style={{ backgroundColor: C.white, border:`1px solid ${C.border}` }}>
-            <div className="flex-1">
-              <h2 className="font-extrabold text-xl md:text-2xl" style={{ color: C.text, letterSpacing:'-0.02em' }}>
-                Bienvenido al sistema
-              </h2>
-              <p className="mt-1.5 text-sm leading-relaxed max-w-lg" style={{ color: C.textMuted }}>
-                Gestione pedidos, inventario y clientes desde un solo lugar.
-                Usa los módulos principales para acceder rápidamente a las funciones más usadas del sistema.
-              </p>
-              <div className="flex items-center gap-4 mt-4 flex-wrap">
-                <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold tracking-wider uppercase"
-                        style={{ backgroundColor: C.primary, color: C.white, boxShadow:`0 4px 12px rgba(71,101,0,0.3)` }}
-                        onMouseEnter={e=>{e.currentTarget.style.backgroundColor=C.primary2;}}
-                        onMouseLeave={e=>{e.currentTarget.style.backgroundColor=C.primary;}}>
-                  ✦ Resumen del día
-                </button>
-                <span className="text-sm font-medium" style={{ color: C.textMuted }}>
-                  Hoy: <strong style={{ color: C.text }}>12 pedidos pendientes</strong>
-                </span>
+      {loading ? (
+        <div className="text-center py-12" style={{ color: C.textMuted }}>Calculando balance…</div>
+      ) : error ? (
+        <div className="rounded-xl p-4 text-sm font-medium" style={{ backgroundColor: C.errorBg, color: C.error }}>
+          {error}
+        </div>
+      ) : data ? (
+        <>
+          {/* Resultado principal */}
+          <div className="rounded-2xl p-5 md:p-6 border"
+               style={{
+                 backgroundColor: balance.es_perdida ? C.errorBg : balance.es_ganancia ? C.successBg : C.white,
+                 borderColor: C.border,
+               }}>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: C.textMuted }}>
+              Resultado · {periodoLabel}
+            </p>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mt-2">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: resultadoColor }}>{resultadoLabel}</p>
+                <p className="text-3xl md:text-4xl font-extrabold mt-1" style={{ color: resultadoColor }}>
+                  {fmt(balance.resultado)}
+                </p>
+              </div>
+              <div className="text-sm space-y-1" style={{ color: C.textSub }}>
+                <p>Ingresos (entregadas): <strong style={{ color: C.primary }}>{fmt(balance.ingresos)}</strong></p>
+                <p>Egresos (compras): <strong style={{ color: C.orange }}>{fmt(balance.egresos)}</strong></p>
+                <p className="text-xs" style={{ color: C.textMuted }}>
+                  Solo se incluyen ventas en estado <strong>entregada</strong>
+                </p>
               </div>
             </div>
-            <div className="text-right hidden md:block flex-shrink-0">
-              <p className="text-xs font-medium capitalize" style={{ color: C.textMuted }}>{fechaHoy}</p>
-              <p className="text-xs mt-1 font-bold" style={{ color: C.primary }}>
-                {usuario?.rol} — {usuario?.correo?.split('@')[0]}
-              </p>
-            </div>
           </div>
 
-          {/* Módulos Principales */}
-          <section>
-            <h3 className="font-bold text-sm mb-3" style={{ color: C.text }}>Módulos Principales</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              {MODS.map(mod => <ModCard key={mod.key} mod={mod} onNav={(key) => navigate(`/${key}`)}/>)}
+          {/* Tarjetas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard
+              label="Ventas entregadas"
+              value={fmt(data.ventas_entregadas.total)}
+              sub={`${data.ventas_entregadas.cantidad} venta(s) · factura ${fmt(data.ventas_entregadas.total_factura)} + domicilio ${fmt(data.ventas_entregadas.total_domicilio)}`}
+              color={C.primary}
+              bg={C.successBg}
+            />
+            <StatCard
+              label="Compras"
+              value={fmt(data.compras.total)}
+              sub={`${data.compras.cantidad} compra(s)`}
+              color={C.orange}
+            />
+            <StatCard
+              label="Balance"
+              value={fmt(balance.resultado)}
+              sub={resultadoLabel}
+              color={resultadoColor}
+            />
+            <StatCard
+              label="Ventas pendientes"
+              value={fmt(data.ventas_pendientes.total)}
+              sub={`${data.ventas_pendientes.cantidad} (no entran al balance)`}
+              color={C.textSub}
+            />
+          </div>
+
+          {verCanceladas && (
+            <div className="rounded-2xl p-5 border"
+                 style={{ backgroundColor: C.white, borderColor: C.error, borderWidth: 1 }}>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: C.error }}>
+                Ventas canceladas · {periodoLabel}
+              </p>
+              <div className="flex flex-wrap gap-6 mt-3">
+                <div>
+                  <p className="text-xs" style={{ color: C.textMuted }}>Total cancelado</p>
+                  <p className="text-2xl font-extrabold" style={{ color: C.error }}>
+                    {fmt(data.ventas_canceladas.total)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs" style={{ color: C.textMuted }}>Cantidad</p>
+                  <p className="text-2xl font-extrabold" style={{ color: C.text }}>
+                    {data.ventas_canceladas.cantidad}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs" style={{ color: C.textMuted }}>Factura</p>
+                  <p className="text-lg font-bold" style={{ color: C.textSub }}>
+                    {fmt(data.ventas_canceladas.total_factura)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs" style={{ color: C.textMuted }}>Domicilios</p>
+                  <p className="text-lg font-bold" style={{ color: C.textSub }}>
+                    {fmt(data.ventas_canceladas.total_domicilio)}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs mt-3" style={{ color: C.textMuted }}>
+                Las canceladas no afectan el balance de ganancia/pérdida; se muestran solo como referencia.
+              </p>
             </div>
-          </section>
+          )}
 
-          {/* Menú especial + Resumen */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2"><MenuEspecial/></div>
-            <div><ResumenHoy/></div>
-          </section>
+          {/* Tabla mensual (solo vista anual) */}
+          {!filtroMes && data.por_mes?.length > 0 && (
+            <div className="rounded-2xl border overflow-hidden"
+                 style={{ backgroundColor: C.white, borderColor: C.border }}>
+              <div className="px-4 py-3" style={{ backgroundColor: C.container }}>
+                <h3 className="font-bold text-sm" style={{ color: C.text }}>
+                  Desglose mensual {filtroAno}
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <th className="px-4 py-3 text-left font-semibold" style={{ color: C.text }}>Mes</th>
+                      <th className="px-4 py-3 text-right font-semibold" style={{ color: C.text }}>Ventas entregadas</th>
+                      <th className="px-4 py-3 text-right font-semibold" style={{ color: C.text }}>Compras</th>
+                      <th className="px-4 py-3 text-right font-semibold" style={{ color: C.text }}>Balance</th>
+                      {verCanceladas && (
+                        <th className="px-4 py-3 text-right font-semibold" style={{ color: C.error }}>Canceladas</th>
+                      )}
+                      <th className="px-4 py-3 text-center font-semibold" style={{ color: C.text }}>Resultado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.por_mes.map(row => {
+                      const perdida = row.balance < 0;
+                      const ganancia = row.balance > 0;
+                      return (
+                        <tr key={row.mes} style={{ borderBottom: `1px solid ${C.border}` }}>
+                          <td className="px-4 py-2.5 font-semibold" style={{ color: C.text }}>
+                            {MESES_NOMBRE[row.mes]}
+                          </td>
+                          <td className="px-4 py-2.5 text-right" style={{ color: C.primary }}>
+                            {fmt(row.ventas_entregadas)}
+                            <span className="text-xs ml-1" style={{ color: C.textMuted }}>({row.cant_entregadas})</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right" style={{ color: C.orange }}>
+                            {fmt(row.compras)}
+                            <span className="text-xs ml-1" style={{ color: C.textMuted }}>({row.cant_compras})</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-bold"
+                              style={{ color: perdida ? C.error : ganancia ? C.primary : C.text }}>
+                            {fmt(row.balance)}
+                          </td>
+                          {verCanceladas && (
+                            <td className="px-4 py-2.5 text-right" style={{ color: C.error }}>
+                              {fmt(row.ventas_canceladas)}
+                              <span className="text-xs ml-1" style={{ color: C.textMuted }}>({row.cant_canceladas})</span>
+                            </td>
+                          )}
+                          <td className="px-4 py-2.5 text-center">
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold"
+                                  style={{
+                                    backgroundColor: perdida ? C.errorBg : ganancia ? C.successBg : C.container,
+                                    color: perdida ? C.error : ganancia ? C.primary : C.textMuted,
+                                  }}>
+                              {perdida ? 'Pérdida' : ganancia ? 'Ganancia' : '—'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      ) : null}
+    </div>
+  );
+}
 
-          {/* Footer */}
-          <footer className="text-center py-5">
-            <Ic d={IK.heart} size={18} fill="#fca5a5" stroke="#ef4444" sw={1.5}/>
-            <p className="text-sm font-semibold italic mt-2" style={{ color: C.textMuted }}>
-              "Cocinamos con amor para tu familia"
-            </p>
-            <p className="text-xs mt-1" style={{ color: C.border }}>
-              Lili y su Sazón Completa © {new Date().getFullYear()}
-            </p>
-          </footer>
+function DashboardBasico({ usuario }) {
+  const navigate = useNavigate();
+  const fechaHoy = new Date().toLocaleDateString('es-CO', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
 
+  const mods = [
+    { key: 'productos', title: 'Productos', path: '/productos' },
+    { key: 'clientes', title: 'Clientes', path: '/clientes' },
+    { key: 'carrito', title: 'Carrito', path: '/carrito' },
+    { key: 'compras', title: 'Compras', path: '/compras' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl p-5 md:p-6 border"
+           style={{ backgroundColor: C.white, borderColor: C.border }}>
+        <h2 className="font-extrabold text-xl md:text-2xl" style={{ color: C.text }}>
+          Bienvenido al sistema
+        </h2>
+        <p className="mt-1.5 text-sm" style={{ color: C.textMuted }}>
+          Gestione pedidos, inventario y clientes desde un solo lugar.
+        </p>
+        <p className="text-xs mt-3 capitalize" style={{ color: C.textMuted }}>{fechaHoy}</p>
+        <p className="text-xs mt-1 font-bold" style={{ color: C.primary }}>
+          {usuario?.rol} — {usuario?.correo?.split('@')[0]}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {mods.map(m => (
+          <button key={m.key} type="button" onClick={() => navigate(m.path)}
+            className="rounded-2xl p-5 text-left border transition-all"
+            style={{ backgroundColor: C.white, borderColor: C.border }}>
+            <h3 className="font-bold text-sm" style={{ color: C.text }}>{m.title}</h3>
+            <p className="text-xs mt-2 font-semibold" style={{ color: C.primary }}>Acceder →</p>
+          </button>
+        ))}
+      </div>
+      <p className="text-sm text-center" style={{ color: C.textMuted }}>
+        El balance de ventas y compras está disponible para el rol administrador.
+      </p>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const { usuario } = useAuth();
+  const rol = (usuario?.rol || '').toLowerCase();
+  const esAdmin = rol === 'admin' || rol === 'administrador';
+
+  return (
+    <AppLayout activeKey="dashboard">
+      <div className="p-5 md:p-6">
+        {esAdmin ? <BalanceAdmin /> : <DashboardBasico usuario={usuario} />}
       </div>
     </AppLayout>
   );

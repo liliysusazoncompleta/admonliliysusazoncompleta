@@ -1,4 +1,4 @@
-﻿# 🍽️ Lili y su Sazón Completa — Sistema ERP de Catering
+# 🍽️ Lili y su Sazón Completa — Sistema ERP de Catering
 
 > **"Cocinamos con amor para tu familia"**
 > Plataforma de gestión para catering artesanal colombiano.
@@ -19,6 +19,8 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 - Carta interactiva para clientes
 - Perfiles de usuario con Mi Cuenta
 - Carrito de compras integrado
+- **Dashboard de balance** (ventas entregadas vs compras por mes/año)
+- Gestión completa de ventas (crear, editar, eliminar y cambiar estado)
 - Interfaz responsive con drawer móvil
 - API REST en Node.js + Express
 - Frontend en React + Vite + Tailwind CSS
@@ -27,6 +29,22 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 
 ## ✨ Últimas modificaciones implementadas
 
+- ✅ **Dashboard de balance financiero** (`DashboardPage` + `/api/dashboard/balance`):
+  - Menú lateral renombrado a **Dashboard** (antes “Inicio”).
+  - Filtros por **año** y/o **mes** para comparar ingresos y egresos del período.
+  - **Ingresos**: solo ventas en estado `entregada` (valor factura + domicilio).
+  - **Egresos**: total de compras del mismo período.
+  - **Balance** = ingresos − compras → indica ganancia, pérdida o equilibrio.
+  - Opción **Ver ventas canceladas**: muestra el total y cantidad de ventas `cancelada` (informativo; no afecta el balance).
+  - Con filtro solo de año: **desglose mensual** con resultado por mes.
+  - Disponible para rol **admin**; otros roles ven la bienvenida básica con accesos rápidos.
+  - Archivos: `client/src/pages/DashboardPage.jsx`, `server/controllers/dashboardController.js`, `server/routes/dashboardRoutes.js`.
+- ✅ **Módulo Ventas — CRUD completo** (`VentasPage`):
+  - **Crear** venta desde el botón **+ Nueva venta** (persistida en BD con `POST /api/ventas`).
+  - **Editar** venta (cliente, vendedor, fecha de entrega, valor, % comisión, domicilio, estado, observaciones) con `PUT /api/ventas/:id`.
+  - **Eliminar** venta (soft delete `activo = false`) con `DELETE /api/ventas/:id`.
+  - Se mantiene el cambio rápido de estado por ciclo: entregada → pendiente → cancelada → entregada (`PATCH /api/ventas/:id/estado`).
+  - La comisión se recalcula en BD mediante el trigger `trg_calcular_comision` al insertar/actualizar.
 - ✅ **Campo de descuento en factura** (`CarritoPage`): Se añadió soporte completo para descuentos sobre el subtotal de productos:
   - Campo editable **Porcentaje de descuento** (opcional, 0–100%) en el formulario de checkout.
   - Campo de solo lectura **Valor del descuento**, calculado automáticamente sobre el subtotal de productos.
@@ -63,7 +81,6 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 - El documento PDF se genera en tamaño `letter` y se escala para que el contenido se visualice mejor en una sola página.
 - El nombre del archivo PDF se genera con el cliente y la fecha: `nombrecliente_yyyymmdd.pdf`.
 - Los datos adicionales de cliente (`teléfono alterno`, `NIT/CC`, `dirección alterna`, `observaciones`) se muestran en la factura siempre que estén disponibles.
-
 - ✅ **Control de visibilidad del menú principal según permisos de sesión**:
   - El frontend ahora oculta automáticamente las opciones del menú principal que el usuario en sesión no tiene permiso de ver. La lógica se implementó en `client/src/components/AppLayout.jsx` y utiliza la información de `usuario.rol` expuesta por `useAuth`.
   - El backend normaliza los roles (por ejemplo: `ventas` → `vendedor`, `operador` → `operario`, variantes de administrador → `admin`) en `server/controllers/authController.js`, por lo que las comprobaciones en el cliente son en minúsculas.
@@ -81,15 +98,17 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 
 ## 🧱 Tecnologías usadas
 
-| Capa | Tecnología |
-|---|---|
-| **Frontend** | React 18, Vite 5, Tailwind CSS 3 |
-| **Backend** | Node.js 18+, Express 4, ESM |
-| **Base de datos** | PostgreSQL |
-| **Autenticación** | JWT, bcrypt |
-| **Upload** | Multer |
-| **Email** | Nodemailer + Mailtrap |
-| **Gestor de paquetes** | pnpm |
+
+| Capa                   | Tecnología                       |
+| ---------------------- | -------------------------------- |
+| **Frontend**           | React 18, Vite 5, Tailwind CSS 3 |
+| **Backend**            | Node.js 18+, Express 4, ESM      |
+| **Base de datos**      | PostgreSQL                       |
+| **Autenticación**      | JWT, bcrypt                      |
+| **Upload**             | Multer                           |
+| **Email**              | Nodemailer + Mailtrap            |
+| **Gestor de paquetes** | pnpm                             |
+
 
 ---
 
@@ -176,15 +195,16 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 
 ### 📂 Detalle de carpetas principales
 
-**`client/src/components/`** — Componentes reutilizables (botones, modales, formularios, tarjetas, etc.)
+`**client/src/components/**` — Componentes reutilizables (botones, modales, formularios, tarjetas, etc.)
 
-**`client/src/hooks/`** — Lógica compartida (useAuth, useFetch, useForm, etc.)
+`**client/src/hooks/**` — Lógica compartida (useAuth, useFetch, useForm, etc.)
 
-**`client/src/pages/`** — Páginas del sistema:
-- Dashboard
+`**client/src/pages/**` — Páginas del sistema:
+
+- Dashboard (balance financiero ventas vs compras — admin)
 - Empleados
 - Usuarios  
-- Ventas
+- Ventas (CRUD completo)
 - Productos
 - Clientes
 - Proveedores
@@ -197,7 +217,8 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 - Cambiar Contraseña
 - Recuperar Contraseña
 
-**`server/controllers/`** — Controladores por módulo:
+`**server/controllers/**` — Controladores por módulo:
+
 - empleadosController.js
 - usuariosController.js
 - ventasController.js
@@ -205,17 +226,20 @@ admonliliysusazoncompleta/                 # Raíz del monorepo
 - clientesController.js
 - proveedoresController.js
 - comprasController.js
+- dashboardController.js
 - authController.js
 
-**`server/routes/`** — Rutas agrupadas:
-- auth.routes.js
-- empleados.routes.js
-- usuarios.routes.js
-- ventas.routes.js
-- productos.routes.js
-- clientes.routes.js
-- proveedores.routes.js
-- compras.routes.js
+`**server/routes/**` — Rutas agrupadas:
+
+- auth.routes.js / authRoutes.js
+- empleados.routes.js / empleadosRoutes.js
+- usuarios.routes.js / usuariosRoutes.js
+- ventas.routes.js / ventasRoutes.js
+- productos.routes.js / productosRoutes.js
+- clientes.routes.js / clientesRoutes.js
+- proveedores.routes.js / proveedoresRoutes.js
+- compras.routes.js / comprasRoutes.js
+- dashboardRoutes.js
 
 ---
 
@@ -251,129 +275,153 @@ postgresql://postgres:5241271@localhost:5432/LiliysuSazonCompleta_DB
 ### Estructura de tablas principales
 
 #### `public.empleados`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id_empleado | SERIAL PK | Clave primaria |
-| nombre | VARCHAR(150) | Nombre completo del empleado |
-| cedula | VARCHAR(30) | Cédula única del empleado |
-| telefono | VARCHAR(20) | Teléfono único |
-| cargo | VARCHAR(100) | Cargo o función |
-| salario | NUMERIC(14,2) | Salario del empleado |
-| direccion_principal | TEXT | Dirección principal |
-| direccion_alterna | TEXT | Dirección alternativa |
-| activo | BOOLEAN | Empleado activo |
+
+
+| Campo               | Tipo          | Descripción                  |
+| ------------------- | ------------- | ---------------------------- |
+| id_empleado         | SERIAL PK     | Clave primaria               |
+| nombre              | VARCHAR(150)  | Nombre completo del empleado |
+| cedula              | VARCHAR(30)   | Cédula única del empleado    |
+| telefono            | VARCHAR(20)   | Teléfono único               |
+| cargo               | VARCHAR(100)  | Cargo o función              |
+| salario             | NUMERIC(14,2) | Salario del empleado         |
+| direccion_principal | TEXT          | Dirección principal          |
+| direccion_alterna   | TEXT          | Dirección alternativa        |
+| activo              | BOOLEAN       | Empleado activo              |
+
 
 #### `public.usuarios`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id_usuario | SERIAL PK | Clave primaria |
-| cedula |  VARCHAR(30) | Referencia a `empleados` |
-| correo | VARCHAR(255) | Correo de acceso único |
-| password_hash | VARCHAR(255) | Hash bcrypt |
-| rol | VARCHAR(50) | Rol: admin, operador, cocinero, cliente |
-| ultimo_login | TIMESTAMP | Último inicio de sesión |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | INT | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | INT | Usuario actualizador |
-| activo | BOOLEAN | Usuario activo |
+
+
+| Campo         | Tipo         | Descripción                             |
+| ------------- | ------------ | --------------------------------------- |
+| id_usuario    | SERIAL PK    | Clave primaria                          |
+| cedula        | VARCHAR(30)  | Referencia a `empleados`                |
+| correo        | VARCHAR(255) | Correo de acceso único                  |
+| password_hash | VARCHAR(255) | Hash bcrypt                             |
+| rol           | VARCHAR(50)  | Rol: admin, operador, cocinero, cliente |
+| ultimo_login  | TIMESTAMP    | Último inicio de sesión                 |
+| created_at    | TIMESTAMP    | Fecha creación                          |
+| created_by    | INT          | Usuario creador                         |
+| updated_at    | TIMESTAMP    | Fecha actualización                     |
+| updated_by    | INT          | Usuario actualizador                    |
+| activo        | BOOLEAN      | Usuario activo                          |
+
 
 #### `public.clientes`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id_cliente | SERIAL PK | Clave primaria |
-| nombre | VARCHAR(200) | Nombre o razón social |
-| nit_cc | VARCHAR(30) | NIT o cédula opcional único |
-| telefono | VARCHAR(20) | Teléfono obligatorio único |
-| telefono_alt | VARCHAR(20) | Teléfono alternativo |
-| direccion_principal | TEXT | Dirección principal |
-| direccion_alterna | TEXT | Dirección secundaria |
-| observaciones | TEXT | Notas del cliente |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | INT | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | INT | Usuario actualizador |
-| activo | BOOLEAN | Cliente activo |
+
+
+| Campo               | Tipo         | Descripción                 |
+| ------------------- | ------------ | --------------------------- |
+| id_cliente          | SERIAL PK    | Clave primaria              |
+| nombre              | VARCHAR(200) | Nombre o razón social       |
+| nit_cc              | VARCHAR(30)  | NIT o cédula opcional único |
+| telefono            | VARCHAR(20)  | Teléfono obligatorio único  |
+| telefono_alt        | VARCHAR(20)  | Teléfono alternativo        |
+| direccion_principal | TEXT         | Dirección principal         |
+| direccion_alterna   | TEXT         | Dirección secundaria        |
+| observaciones       | TEXT         | Notas del cliente           |
+| created_at          | TIMESTAMP    | Fecha creación              |
+| created_by          | INT          | Usuario creador             |
+| updated_at          | TIMESTAMP    | Fecha actualización         |
+| updated_by          | INT          | Usuario actualizador        |
+| activo              | BOOLEAN      | Cliente activo              |
+
 
 #### `public.tipo_producto`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id_tipo_producto | SERIAL PK | Clave primaria |
-| nombre | VARCHAR(100) | Nombre único del tipo |
-| descripcion | TEXT | Descripción opcional |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | INT | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | INT | Usuario actualizador |
-| activo | BOOLEAN | Tipo activo |
+
+
+| Campo            | Tipo         | Descripción           |
+| ---------------- | ------------ | --------------------- |
+| id_tipo_producto | SERIAL PK    | Clave primaria        |
+| nombre           | VARCHAR(100) | Nombre único del tipo |
+| descripcion      | TEXT         | Descripción opcional  |
+| created_at       | TIMESTAMP    | Fecha creación        |
+| created_by       | INT          | Usuario creador       |
+| updated_at       | TIMESTAMP    | Fecha actualización   |
+| updated_by       | INT          | Usuario actualizador  |
+| activo           | BOOLEAN      | Tipo activo           |
+
 
 #### `public.productos`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id_producto | SERIAL PK | Clave primaria |
-| codigo | VARCHAR(30) | Código único (ej: PRD-001) |
-| nombre | VARCHAR(150) | Nombre del producto |
-| id_tipo_producto | INT | Referencia a `tipo_producto` |
-| presentacion | VARCHAR(100) | Presentación del producto |
-| valor | NUMERIC(14,2) | Precio en COP |
-| descripcion | TEXT | Descripción detallada |
-| imagen_url | TEXT | Ruta o URL de imagen |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | INT | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | INT | Usuario actualizador |
-| activo | BOOLEAN | Producto activo |
+
+
+| Campo            | Tipo          | Descripción                  |
+| ---------------- | ------------- | ---------------------------- |
+| id_producto      | SERIAL PK     | Clave primaria               |
+| codigo           | VARCHAR(30)   | Código único (ej: PRD-001)   |
+| nombre           | VARCHAR(150)  | Nombre del producto          |
+| id_tipo_producto | INT           | Referencia a `tipo_producto` |
+| presentacion     | VARCHAR(100)  | Presentación del producto    |
+| valor            | NUMERIC(14,2) | Precio en COP                |
+| descripcion      | TEXT          | Descripción detallada        |
+| imagen_url       | TEXT          | Ruta o URL de imagen         |
+| created_at       | TIMESTAMP     | Fecha creación               |
+| created_by       | INT           | Usuario creador              |
+| updated_at       | TIMESTAMP     | Fecha actualización          |
+| updated_by       | INT           | Usuario actualizador         |
+| activo           | BOOLEAN       | Producto activo              |
+
 
 #### `public.ventas`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id_venta | SERIAL PK | Clave primaria |
-| id_cliente | INT | Referencia a `clientes` |
-| id_usuario | INT | Referencia a `usuarios` |
-| id_empleado_comision | INT | Referencia a `empleados` |
-| fecha_factura | DATE | Fecha de factura |
-| fecha_entrega | DATE | Fecha de entrega |
-| valor_factura | NUMERIC | Total factura (con descuento y domicilio) |
-| porcentaje_comision | NUMERIC | % de comisión |
-| valor_comision | NUMERIC | Valor comisión |
-| valor_domicilio | NUMERIC | Valor de domicilio |
-| porcentaje_descuento | NUMERIC | % de descuento aplicado al subtotal (opcional) |
-| valor_descuento | NUMERIC | Valor monetario del descuento (opcional) |
-| observaciones | TEXT | Notas de la venta |
-| estado | CHARACTER VARYING | Estado: 'entregada', 'pendiente', 'cancelada' |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | INT | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | INT | Usuario actualizador |
-| activo | BOOLEAN | Venta activa |
+
+
+| Campo                | Tipo              | Descripción                                    |
+| -------------------- | ----------------- | ---------------------------------------------- |
+| id_venta             | SERIAL PK         | Clave primaria                                 |
+| id_cliente           | INT               | Referencia a `clientes`                        |
+| id_usuario           | INT               | Referencia a `usuarios`                        |
+| id_empleado_comision | INT               | Referencia a `empleados`                       |
+| fecha_factura        | DATE              | Fecha de factura                               |
+| fecha_entrega        | DATE              | Fecha de entrega                               |
+| valor_factura        | NUMERIC           | Total factura (con descuento y domicilio)      |
+| porcentaje_comision  | NUMERIC           | % de comisión                                  |
+| valor_comision       | NUMERIC           | Valor comisión                                 |
+| valor_domicilio      | NUMERIC           | Valor de domicilio                             |
+| porcentaje_descuento | NUMERIC           | % de descuento aplicado al subtotal (opcional) |
+| valor_descuento      | NUMERIC           | Valor monetario del descuento (opcional)       |
+| observaciones        | TEXT              | Notas de la venta                              |
+| estado               | CHARACTER VARYING | Estado: 'entregada', 'pendiente', 'cancelada'  |
+| created_at           | TIMESTAMP         | Fecha creación                                 |
+| created_by           | INT               | Usuario creador                                |
+| updated_at           | TIMESTAMP         | Fecha actualización                            |
+| updated_by           | INT               | Usuario actualizador                           |
+| activo               | BOOLEAN           | Venta activa                                   |
+
 
 #### `public."TblProveedores"`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id | SERIAL PK | Clave primaria |
-| nit | VARCHAR(20) UNIQUE | NIT único del proveedor |
-| nombre | VARCHAR(150) | Nombre del proveedor |
-| direccion | VARCHAR(250) | Dirección del proveedor |
-| telefono | VARCHAR(20) | Teléfono del proveedor |
-| estado | VARCHAR(10) | Estado: 'Activo' o 'Inactivo' |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | VARCHAR(100) | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | VARCHAR(100) | Usuario actualizador |
+
+
+| Campo      | Tipo               | Descripción                   |
+| ---------- | ------------------ | ----------------------------- |
+| id         | SERIAL PK          | Clave primaria                |
+| nit        | VARCHAR(20) UNIQUE | NIT único del proveedor       |
+| nombre     | VARCHAR(150)       | Nombre del proveedor          |
+| direccion  | VARCHAR(250)       | Dirección del proveedor       |
+| telefono   | VARCHAR(20)        | Teléfono del proveedor        |
+| estado     | VARCHAR(10)        | Estado: 'Activo' o 'Inactivo' |
+| created_at | TIMESTAMP          | Fecha creación                |
+| created_by | VARCHAR(100)       | Usuario creador               |
+| updated_at | TIMESTAMP          | Fecha actualización           |
+| updated_by | VARCHAR(100)       | Usuario actualizador          |
+
 
 #### `public."TblCompras"`
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id | SERIAL PK | Clave primaria |
-| num_factura | VARCHAR(50) UNIQUE | Número de factura único |
-| fecha_compra | DATE | Fecha de la compra |
-| proveedor_nit | VARCHAR(20) FK | Referencia a `TblProveedores.nit` |
-| producto | VARCHAR(200) | Nombre del producto |
-| valor | NUMERIC(14,2) | Valor total de la compra |
-| created_at | TIMESTAMP | Fecha creación |
-| created_by | VARCHAR(100) | Usuario creador |
-| updated_at | TIMESTAMP | Fecha actualización |
-| updated_by | VARCHAR(100) | Usuario actualizador |
+
+
+| Campo         | Tipo               | Descripción                       |
+| ------------- | ------------------ | --------------------------------- |
+| id            | SERIAL PK          | Clave primaria                    |
+| num_factura   | VARCHAR(50) UNIQUE | Número de factura único           |
+| fecha_compra  | DATE               | Fecha de la compra                |
+| proveedor_nit | VARCHAR(20) FK     | Referencia a `TblProveedores.nit` |
+| producto      | VARCHAR(200)       | Nombre del producto               |
+| valor         | NUMERIC(14,2)      | Valor total de la compra          |
+| created_at    | TIMESTAMP          | Fecha creación                    |
+| created_by    | VARCHAR(100)       | Usuario creador                   |
+| updated_at    | TIMESTAMP          | Fecha actualización               |
+| updated_by    | VARCHAR(100)       | Usuario actualizador              |
+
 
 ### Notas de diseño
 
@@ -445,7 +493,7 @@ psql -U postgres -d LiliysuSazonCompleta_DB -f scripts/schema_productos.sql
 node -e "import('bcrypt').then(b => b.default.hash('TuContraseña@2024', 12).then(console.log))"
 ```
 
-2. Inserta el usuario en la base de datos:
+1. Inserta el usuario en la base de datos:
 
 ```sql
 INSERT INTO public.usuarios (id_empleado, correo, password_hash, rol, activo)
@@ -469,16 +517,18 @@ taskkill /PID <PID> /F
 ```
 
 Repite el mismo procedimiento para `5173` o el puerto que aparezca en el error.
+
 ### Qué hace cada comando
+
 netstat -ano | findstr ":3001"
 
 Busca procesos que estén usando el puerto 3001.
 Devuelve una línea con el número de PID del proceso que está escuchando en ese puerto.
-tasklist /FI "PID eq <PID>"
+tasklist /FI "PID eq "
 
-Reemplaza <PID> por el número obtenido en el paso anterior.
+Reemplaza  por el número obtenido en el paso anterior.
 Muestra qué aplicación o proceso corresponde a ese PID.
-taskkill /PID <PID> /F
+taskkill /PID  /F
 
 Termina forzosamente el proceso que está ocupando el puerto.
 Libera el puerto para que el servidor pueda arrancar de nuevo.
@@ -532,6 +582,23 @@ Libera el puerto para que el servidor pueda arrancar de nuevo.
 - `PUT /:id` (actualizar compra)
 - `DELETE /:id`
 
+### `/api/ventas` (rol `admin`)
+
+- `GET /` (con filtros: ano, mes, vendedor, estado) — solo ventas con `activo = true`
+- `POST /` (crear venta: cliente, vendedor/comisión, fecha_entrega, valor_factura, domicilio, observaciones, estado)
+- `PUT /:id` (actualizar venta completa)
+- `PATCH /:id/estado` (cambiar estado: `entregada` | `pendiente` | `cancelada`)
+- `DELETE /:id` (soft delete: `activo = false`)
+
+### `/api/dashboard` (rol `admin`)
+
+- `GET /balance` (con filtros: `ano`, `mes` opcional)
+  - Totales de ventas **entregadas** (ingresos = factura + domicilio)
+  - Totales de ventas **canceladas** y **pendientes** (informativos)
+  - Totales de **compras** del período
+  - **Balance** = ingresos entregadas − compras (`es_ganancia` / `es_perdida` / `es_equilibrio`)
+  - Desglose `por_mes` cuando no se filtra mes
+
 ---
 
 ## 🧪 Diagnóstico
@@ -581,11 +648,12 @@ pnpm sync-images:apply
 - ✅ Proveedores: completo
 - ✅ Compras: completo
 
-
 ---
 
 ## ✨ Últimas mejoras
 
+- **Dashboard de balance**: Comparación de ventas entregadas vs compras por mes/año, con detección de ganancia o pérdida y filtro de ventas canceladas.
+- **Ventas CRUD**: Crear, editar y eliminar ventas desde la pantalla de Gestión de Ventas, con persistencia en PostgreSQL.
 - **Descuento en factura**: Campo de porcentaje de descuento (opcional) en el checkout. El valor equivalente se calcula automáticamente sobre el subtotal y aparece en la factura/PDF solo cuando se diligencia. El total final incorpora: `subtotal − descuento + domicilio`.
 - Se corrigió el flujo de checkout para evitar la pantalla en blanco al abrir "Continuar con la venta".
 - El exportado PDF ahora descarga como `cliente_YYYYMMDD.pdf`.
@@ -599,10 +667,18 @@ pnpm sync-images:apply
 ## 📄 Características por módulo
 
 ### 📊 Dashboard
-- Visualización de estadísticas generales
-- Acceso rápido a todos los módulos
+
+- ✅ Menú **Dashboard** en el sidebar (`/dashboard`)
+- ✅ Balance financiero por **año** y/o **mes** (admin)
+- ✅ Ingresos: solo ventas en estado **entregada** (factura + domicilio)
+- ✅ Egresos: total de compras del período
+- ✅ Resultado: ganancia / pérdida / equilibrio
+- ✅ Opción para ver totales de ventas **canceladas** (no afectan el balance)
+- ✅ Desglose mensual al consultar todo el año
+- ✅ Acceso rápido a módulos (roles no admin)
 
 ### 👥 Gestión de Empleados
+
 - ✅ Visualizar lista completa de empleados
 - ✅ Crear nuevos empleados con datos personales (cédula, teléfono, cargo, salario, direcciones)
 - ✅ Editar información de empleados existentes
@@ -611,6 +687,7 @@ pnpm sync-images:apply
 - ✅ Mostrar estado activo/inactivo
 
 ### 🔐 Gestión de Usuarios
+
 - ✅ Visualizar lista de usuarios del sistema
 - ✅ Crear usuarios con roles diferenciados (admin, operador, cocinero)
 - ✅ Editar información de usuarios
@@ -621,7 +698,11 @@ pnpm sync-images:apply
 - ✅ Asocación con empleados
 
 ### 💰 Gestión de Ventas
+
 - ✅ Visualizar todas las ventas registradas
+- ✅ **Crear** nueva venta desde la pantalla (persistida en BD)
+- ✅ **Editar** venta (cliente, vendedor, fecha entrega, valor, comisión, domicilio, estado, observaciones)
+- ✅ **Eliminar** venta (soft delete con `activo = false`)
 - ✅ Filtrar por año (2025, 2026, etc.)
 - ✅ Filtrar por mes (enero-diciembre)
 - ✅ Filtrar por vendedor/empleado
@@ -630,11 +711,14 @@ pnpm sync-images:apply
 - ✅ Ver resumen de totales:
   - Total de ventas ($)
   - Total de comisiones ($)
+  - Total de domicilios ($)
   - Cantidad de ventas entregadas vs pendientes
+- ✅ Exportar CSV y vista previa del listado filtrado
 - ✅ Información detallada por venta (cliente, vendedor, fecha, valor, comisión)
 - ✅ Gestión de 3 estados de venta para mayor control
 
 ### 📦 Gestión de Productos
+
 - Visualizar catálogo completo
 - Crear, editar y eliminar productos
 - Filtrar por tipo de producto
@@ -642,11 +726,13 @@ pnpm sync-images:apply
 - Asignación de imágenes
 
 ### 👤 Gestión de Clientes
+
 - Crear, editar y eliminar clientes
 - Información completa (teléfono, dirección, NIT/CC)
 - Búsqueda y filtrado
 
 ### 🏢 Gestión de Proveedores
+
 - ✅ Visualizar lista completa de proveedores
 - ✅ Crear nuevos proveedores con NIT único
 - ✅ Editar información de proveedores
@@ -655,6 +741,7 @@ pnpm sync-images:apply
 - ✅ Información: nombre, dirección, teléfono, estado
 
 ### 📊 Gestión de Compras
+
 - ✅ Registrar compras con número de factura único
 - ✅ Filtrar compras por factura, producto, proveedor
 - ✅ Filtrar compras por rango de fechas
@@ -664,6 +751,7 @@ pnpm sync-images:apply
 - ✅ Auditoría completa de cada compra
 
 ### 🛒 Carrito de Compras
+
 - ✅ Agregar productos al carrito desde el catálogo
 - ✅ Gestionar cantidades por producto
 - ✅ Seleccionar o crear cliente en el checkout
@@ -677,12 +765,14 @@ pnpm sync-images:apply
 - ✅ Guardar venta en el sistema
 
 ### 🎨 Portafolio de Clientes
+
 - ✅ Visualización profesional de productos y servicios
 - ✅ Catálogo organizado para clientes finales
 - ✅ Navegación intuitiva por categorías
 - ✅ Acceso sin necesidad de login
 
 ### 📋 Carta/Menú
+
 - ✅ Interfaz de menú interactiva
 - ✅ Visualización clara de productos disponibles
 - ✅ Categorización por tipo de producto
@@ -690,6 +780,7 @@ pnpm sync-images:apply
 - ✅ Diseño responsive para móviles
 
 ### 👤 Mi Cuenta / Perfil de Usuario
+
 - ✅ Visualización de datos del usuario
 - ✅ Actualización de información personal
 - ✅ Gestión de perfil
@@ -712,10 +803,13 @@ pnpm sync-images:apply
 - Para catálogo, las imágenes oficiales se administran en `server/public/productos/`.
 - Las cargas desde formularios administrativos siguen usando `server/uploads/productos/`.
 - Los productos usan soft delete con `activo = false`.
-- Los módulos de administración (Empleados, Usuarios, Ventas, Proveedores, Compras) requieren autenticación.
+- Los módulos de administración (Empleados, Usuarios, Ventas, Proveedores, Compras, Dashboard de balance) requieren autenticación.
+- Las ventas usan soft delete con `activo = false` (igual que clientes/productos).
+- El balance del Dashboard solo contabiliza ventas `entregada` frente a compras; las canceladas son opcionales y no restan del resultado.
 - Las migraciones de proveedores y compras son idempotentes (usan `IF NOT EXISTS`).
 
-## Despliegue a producción 
+## Despliegue a producción
+
 - Trabajas en → desarrollo
 - Pruebas localmente → pnpm dev
 - Cuando todo funciona:
@@ -726,9 +820,11 @@ pnpm sync-images:apply
   -cd client && pnpm deploy ← actualiza GitHub Pages
 
 # Probar local
+
 pnpm dev
 
 # Cuando funcione, subir a producción
+
 cd client
 pnpm build
 pnpm exec gh-pages -d dist
@@ -738,6 +834,7 @@ git commit -m "fix: sidebar responsive móvil con drawer"
 git push origin desarrollo
 
 # Merge a main para Railway
+
 git checkout main
 git merge desarrollo
 git push origin main

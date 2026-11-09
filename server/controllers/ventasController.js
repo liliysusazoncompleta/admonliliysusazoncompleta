@@ -12,18 +12,20 @@ const fmtError = (res, err, ctx) => {
 export const getVentas = async (req, res) => {
   try {
     const { ano, mes, vendedor, estado } = req.query;
+    const pageSize = 30;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const params = [];
     const conds = ['v.activo = true'];
 
     if (ano && mes) {
       params.push(`${ano}-${String(mes).padStart(2, '0')}`);
-      conds.push(`TO_CHAR(v.fecha_factura, 'YYYY-MM') = $${params.length}`);
+      conds.push(`TO_CHAR(v.fecha_entrega, 'YYYY-MM') = $${params.length}`);
     } else if (ano) {
       params.push(ano);
-      conds.push(`TO_CHAR(v.fecha_factura, 'YYYY') = $${params.length}`);
+      conds.push(`TO_CHAR(v.fecha_entrega, 'YYYY') = $${params.length}`);
     } else if (mes) {
-      params.push(`%${String(mes).padStart(2, '0')}%`);
-      conds.push(`TO_CHAR(v.fecha_factura, 'MM') = $${params.length}`);
+      params.push(String(mes).padStart(2, '0'));
+      conds.push(`TO_CHAR(v.fecha_entrega, 'MM') = $${params.length}`);
     }
 
     if (vendedor) {
@@ -38,20 +40,39 @@ export const getVentas = async (req, res) => {
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 
-    const { rows } = await query(
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      query(
       `SELECT v.id_venta, v.id_cliente, v.id_empleado_comision, v.fecha_factura,
-              v.fecha_entrega, v.valor_factura, v.valor_comision, v.valor_domicilio,
-              v.estado, v.observaciones, v.created_at,
+              v.fecha_entrega, v.valor_factura, v.porcentaje_comision, v.valor_comision,
+              v.valor_domicilio, v.estado, v.observaciones, v.created_at,
               c.nombre AS cliente_nombre, e.nombre AS empleado_nombre
        FROM public.ventas v
        LEFT JOIN public.clientes c ON v.id_cliente = c.id_cliente
        LEFT JOIN public.empleados e ON v.id_empleado_comision = e.id_empleado
        ${where}
-       ORDER BY v.fecha_factura DESC`,
-      params
-    );
+       ORDER BY v.fecha_entrega DESC NULLS LAST, v.id_venta DESC
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize]
+      ),
+      query(
+        `SELECT COUNT(*)::int AS total
+         FROM public.ventas v
+         ${where}`,
+        params
+      ),
+    ]);
+    const total = countRows[0]?.total || 0;
 
-    res.json({ success: true, data: rows });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
   } catch (e) {
     fmtError(res, e, 'getVentas');
   }
@@ -68,10 +89,10 @@ export const updateVentaEstado = async (req, res) => {
 
     const { rows } = await query(
       `UPDATE public.ventas
-       SET estado = $1
-       WHERE id_venta = $2
+       SET estado = $1, updated_at = NOW(), updated_by = $3
+       WHERE id_venta = $2 AND activo = true
        RETURNING id_venta, estado`,
-      [estado, id]
+      [estado, id, req.user?.id_usuario || null]
     );
 
     if (!rows[0]) {
@@ -84,6 +105,102 @@ export const updateVentaEstado = async (req, res) => {
   }
 };
 
+export const updateVenta = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      id_cliente,
+      id_empleado_comision,
+      fecha_entrega,
+      valor_factura,
+      porcentaje_comision = 0,
+      valor_domicilio = 0,
+      observaciones,
+      estado,
+    } = req.body;
+
+    if (!id_cliente || !id_empleado_comision || !fecha_entrega || valor_factura == null) {
+      return res.status(400).json({
+        success: false,
+        message: 'id_cliente, id_empleado_comision, fecha_entrega y valor_factura son requeridos.',
+      });
+    }
+
+    if (estado && !['entregada', 'pendiente', 'cancelada'].includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Estado inválido. Valores válidos: entregada, pendiente, cancelada',
+      });
+    }
+
+    const { rows } = await query(
+      `UPDATE public.ventas
+       SET id_cliente = $1,
+           id_empleado_comision = $2,
+           fecha_entrega = $3,
+           valor_factura = $4,
+           porcentaje_comision = $5,
+           valor_domicilio = $6,
+           observaciones = $7,
+           estado = COALESCE($8, estado),
+           updated_at = NOW(),
+           updated_by = $9
+       WHERE id_venta = $10 AND activo = true
+       RETURNING id_venta, id_cliente, id_empleado_comision, fecha_factura, fecha_entrega,
+                 valor_factura, porcentaje_comision, valor_comision, valor_domicilio,
+                 observaciones, estado, updated_at, updated_by`,
+      [
+        id_cliente,
+        id_empleado_comision,
+        fecha_entrega,
+        valor_factura,
+        porcentaje_comision,
+        valor_domicilio,
+        observaciones || null,
+        estado || null,
+        req.user?.id_usuario || null,
+        id,
+      ]
+    );
+
+    if (!rows[0]) {
+      return res.status(404).json({ success: false, message: 'Venta no encontrada.' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Venta actualizada correctamente.',
+      data: rows[0],
+    });
+  } catch (e) {
+    fmtError(res, e, 'updateVenta');
+  }
+};
+
+export const deleteVenta = async (req, res) => {
+  try {
+    const { rows } = await query(
+      `UPDATE public.ventas
+       SET activo = false, updated_at = NOW(), updated_by = $1
+       WHERE id_venta = $2 AND activo = true
+       RETURNING id_venta`,
+      [req.user?.id_usuario || null, req.params.id]
+    );
+
+    if (!rows[0]) {
+      return res.status(404).json({ success: false, message: 'Venta no encontrada.' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Venta eliminada correctamente.',
+      data: rows[0],
+    });
+  } catch (e) {
+    fmtError(res, e, 'deleteVenta');
+  }
+};
+
 export const createVenta = async (req, res) => {
   const {
     id_cliente,
@@ -92,8 +209,9 @@ export const createVenta = async (req, res) => {
     valor_factura,
     porcentaje_comision = 0,
     valor_comision = 0,
-    valor_domicilio,
+    valor_domicilio = 0,
     observaciones,
+    estado = 'pendiente',
   } = req.body;
 
   console.log('[createVenta] Payload recibido:', {
@@ -105,6 +223,7 @@ export const createVenta = async (req, res) => {
     valor_comision,
     valor_domicilio,
     observaciones,
+    estado,
     user: req.user,
   });
 
@@ -116,17 +235,24 @@ export const createVenta = async (req, res) => {
     });
   }
 
+  if (estado && !['entregada', 'pendiente', 'cancelada'].includes(estado)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Estado inválido. Valores válidos: entregada, pendiente, cancelada',
+    });
+  }
+
   try {
     const { rows } = await query(
       `INSERT INTO public.ventas
          (id_cliente, id_usuario, id_empleado_comision, fecha_factura, fecha_entrega,
           valor_factura, porcentaje_comision, valor_comision, valor_domicilio, observaciones,
-          created_by, updated_by, activo)
+          estado, created_by, updated_by, activo)
        VALUES
-         ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $10, true)
+         ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $11, true)
        RETURNING id_venta, id_cliente, id_usuario, id_empleado_comision, fecha_factura,
-                 fecha_entrega, valor_factura, porcentaje_comision, valor_comision, valor_domicilio, observaciones,
-                 created_by, updated_by, activo`,
+                 fecha_entrega, valor_factura, porcentaje_comision, valor_comision, valor_domicilio,
+                 observaciones, estado, created_by, updated_by, activo`,
       [
         id_cliente,
         req.user.id_usuario,
@@ -136,13 +262,18 @@ export const createVenta = async (req, res) => {
         porcentaje_comision,
         valor_comision,
         valor_domicilio,
-        observaciones,
+        observaciones || null,
+        estado || 'pendiente',
         req.user.id_usuario,
       ],
     );
 
     console.log('[createVenta] Venta insertada correctamente:', rows[0]);
-    return res.status(201).json({ success: true, data: rows[0] });
+    return res.status(201).json({
+      success: true,
+      message: 'Venta creada correctamente.',
+      data: rows[0],
+    });
   } catch (error) {
     console.error('[createVenta] Error en la inserción:', error.message, error.detail);
     return fmtError(res, error, 'createVenta');

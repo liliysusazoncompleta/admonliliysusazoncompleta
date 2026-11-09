@@ -39,6 +39,12 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
   - Con filtro solo de año: **desglose mensual** con resultado por mes.
   - Disponible para rol **admin**; otros roles ven la bienvenida básica con accesos rápidos.
   - Archivos: `client/src/pages/DashboardPage.jsx`, `server/controllers/dashboardController.js`, `server/routes/dashboardRoutes.js`.
+- ✅ **Períodos por fechas operativas**:
+  - El Dashboard calcula ventas por `fecha_entrega` y compras por `fecha_compra`.
+  - Los filtros del módulo Ventas usan `fecha_entrega`.
+- ✅ **Paginación del módulo Ventas**:
+  - El listado se ordena de la fecha de entrega más reciente a la más antigua y muestra 30 registros por página.
+  - Los resúmenes, la vista previa y el CSV corresponden a la página visible.
 - ✅ **Módulo Ventas — CRUD completo** (`VentasPage`):
   - **Crear** venta desde el botón **+ Nueva venta** (persistida en BD con `POST /api/ventas`).
   - **Editar** venta (cliente, vendedor, fecha de entrega, valor, % comisión, domicilio, estado, observaciones) con `PUT /api/ventas/:id`.
@@ -584,7 +590,7 @@ Libera el puerto para que el servidor pueda arrancar de nuevo.
 
 ### `/api/ventas` (rol `admin`)
 
-- `GET /` (con filtros: ano, mes, vendedor, estado) — solo ventas con `activo = true`
+- `GET /` (con filtros: ano, mes, vendedor, estado, page) — solo ventas con `activo = true`, filtradas por `fecha_entrega`; devuelve 30 registros por página ordenados por fecha de entrega descendente e incluye metadatos de paginación.
 - `POST /` (crear venta: cliente, vendedor/comisión, fecha_entrega, valor_factura, domicilio, observaciones, estado)
 - `PUT /:id` (actualizar venta completa)
 - `PATCH /:id/estado` (cambiar estado: `entregada` | `pendiente` | `cancelada`)
@@ -670,6 +676,7 @@ pnpm sync-images:apply
 
 - ✅ Menú **Dashboard** en el sidebar (`/dashboard`)
 - ✅ Balance financiero por **año** y/o **mes** (admin)
+- ✅ Ventas agrupadas por fecha de entrega y compras por fecha de compra
 - ✅ Ingresos: solo ventas en estado **entregada** (factura + domicilio)
 - ✅ Egresos: total de compras del período
 - ✅ Resultado: ganancia / pérdida / equilibrio
@@ -705,6 +712,7 @@ pnpm sync-images:apply
 - ✅ **Eliminar** venta (soft delete con `activo = false`)
 - ✅ Filtrar por año (2025, 2026, etc.)
 - ✅ Filtrar por mes (enero-diciembre)
+- ✅ Filtrar por fecha de entrega y paginar en grupos de 30, de la entrega más reciente a la más antigua
 - ✅ Filtrar por vendedor/empleado
 - ✅ Filtrar por estado (entregada, pendiente, cancelada)
 - ✅ Cambiar estado de venta con ciclo: entregada → pendiente → cancelada → entregada

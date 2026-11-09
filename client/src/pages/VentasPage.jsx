@@ -307,6 +307,8 @@ function ConfirmDeleteModal({ open, venta, onConfirm, onClose, deleting }) {
 export default function VentasPage() {
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ pageSize: 30, total: 0, totalPages: 0 });
   const [filtroAno, setFiltroAno] = useState('');
   const [filtroMes, setFiltroMes] = useState('');
   const [filtroVendedor, setFiltroVendedor] = useState('');
@@ -351,14 +353,22 @@ export default function VentasPage() {
       if (filtroMes) params.mes = filtroMes;
       if (filtroVendedor) params.vendedor = filtroVendedor;
       if (filtroEstado) params.estado = filtroEstado;
+      params.page = page;
       const { data } = await api.get('/ventas', { params });
       setVentas(data.data || []);
+      const nextPagination = data.pagination || { pageSize: 30, total: 0, totalPages: 0 };
+      setPagination(nextPagination);
+      if (nextPagination.totalPages > 0 && page > nextPagination.totalPages) {
+        setPage(nextPagination.totalPages);
+      } else if (nextPagination.totalPages === 0 && page !== 1) {
+        setPage(1);
+      }
     } catch (err) {
       toast(err.response?.data?.message || 'Error al cargar ventas.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [filtroAno, filtroMes, filtroVendedor, filtroEstado, toast]);
+  }, [filtroAno, filtroMes, filtroVendedor, filtroEstado, page, toast]);
 
   useEffect(() => {
     fetchVendedores();
@@ -398,10 +408,10 @@ export default function VentasPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ventas_${filtroAno || 'todos'}_${filtroMes || 'todos'}.csv`;
+    link.download = `ventas_${filtroAno || 'todos'}_${filtroMes || 'todos'}_pagina_${page}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast(`✅ CSV exportado con ${ventas.length} ventas.`);
+    toast(`CSV exportado con ${ventas.length} ventas de la página ${page}.`);
   };
 
   const handleChangeEstado = async (venta) => {
@@ -528,7 +538,7 @@ export default function VentasPage() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div>
             <label className="text-xs font-semibold" style={{ color: C.textMuted }}>Año</label>
-            <select value={filtroAno} onChange={e => setFiltroAno(e.target.value)}
+            <select value={filtroAno} onChange={e => { setPage(1); setFiltroAno(e.target.value); }}
               className="w-full mt-1 px-3 py-2 rounded-lg border"
               style={{ borderColor: C.border, backgroundColor: C.container }}>
               <option value="">Todos los años</option>
@@ -539,7 +549,7 @@ export default function VentasPage() {
           </div>
           <div>
             <label className="text-xs font-semibold" style={{ color: C.textMuted }}>Mes</label>
-            <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)}
+            <select value={filtroMes} onChange={e => { setPage(1); setFiltroMes(e.target.value); }}
               className="w-full mt-1 px-3 py-2 rounded-lg border"
               style={{ borderColor: C.border, backgroundColor: C.container }}>
               <option value="">Todos los meses</option>
@@ -550,7 +560,7 @@ export default function VentasPage() {
           </div>
           <div>
             <label className="text-xs font-semibold" style={{ color: C.textMuted }}>Vendedor</label>
-            <select value={filtroVendedor} onChange={e => setFiltroVendedor(e.target.value)}
+            <select value={filtroVendedor} onChange={e => { setPage(1); setFiltroVendedor(e.target.value); }}
               className="w-full mt-1 px-3 py-2 rounded-lg border"
               style={{ borderColor: C.border, backgroundColor: C.container }}>
               <option value="">Todos los vendedores</option>
@@ -561,7 +571,7 @@ export default function VentasPage() {
           </div>
           <div>
             <label className="text-xs font-semibold" style={{ color: C.textMuted }}>Estado</label>
-            <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
+            <select value={filtroEstado} onChange={e => { setPage(1); setFiltroEstado(e.target.value); }}
               className="w-full mt-1 px-3 py-2 rounded-lg border"
               style={{ borderColor: C.border, backgroundColor: C.container }}>
               <option value="">Todos los estados</option>
@@ -571,7 +581,7 @@ export default function VentasPage() {
             </select>
           </div>
           <div className="flex items-end">
-            <button onClick={() => { setFiltroAno(''); setFiltroMes(''); setFiltroVendedor(''); setFiltroEstado(''); }}
+            <button onClick={() => { setPage(1); setFiltroAno(''); setFiltroMes(''); setFiltroVendedor(''); setFiltroEstado(''); }}
               className="w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all"
               style={{ backgroundColor: C.container, color: C.text }}>
               Limpiar filtros
@@ -659,9 +669,33 @@ export default function VentasPage() {
         )}
 
         {!loading && ventas.length > 0 && (
+          <>
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm" style={{ color: C.textMuted }}>
+                Mostrando {(page - 1) * pagination.pageSize + 1}–{Math.min(page * pagination.pageSize, pagination.total)} de {pagination.total} ventas
+              </p>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setPage(current => Math.max(1, current - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                  style={{ backgroundColor: C.container, color: C.text }}>
+                  Anterior
+                </button>
+                <span className="text-sm" style={{ color: C.textMuted }}>Página {page} de {pagination.totalPages}</span>
+                <button type="button" onClick={() => setPage(current => Math.min(pagination.totalPages, current + 1))}
+                  disabled={page === pagination.totalPages}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                  style={{ backgroundColor: C.container, color: C.text }}>
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="bg-white rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Total Ventas</p>
+              <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Total en página</p>
               <p className="text-xl font-extrabold mt-1" style={{ color: C.primary }}>
                 ${ventas.reduce((sum, v) => sum + Number(v.valor_factura), 0).toLocaleString('es-CO')}
               </p>
@@ -679,18 +713,19 @@ export default function VentasPage() {
               </p>
             </div>
             <div className="bg-white rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Entregadas</p>
+              <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Entregadas en página</p>
               <p className="text-xl font-extrabold mt-1" style={{ color: C.primary }}>
                 {ventas.filter(v => v.estado === 'entregada').length}/{ventas.length}
               </p>
             </div>
             <div className="bg-white rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Pendientes</p>
+              <p className="text-xs font-semibold" style={{ color: C.textMuted }}>Pendientes en página</p>
               <p className="text-xl font-extrabold mt-1" style={{ color: C.orange }}>
                 {ventas.filter(v => v.estado === 'pendiente').length}/{ventas.length}
               </p>
             </div>
           </div>
+          </>
         )}
       </div>
 
@@ -709,7 +744,7 @@ export default function VentasPage() {
                   VISTA PREVIA
                 </p>
                 <p className="text-base font-bold text-white mt-0.5">
-                  {ventas.length} venta{ventas.length !== 1 ? 's' : ''} con los filtros actuales
+                  {ventas.length} venta{ventas.length !== 1 ? 's' : ''} en la página {page}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -800,7 +835,7 @@ export default function VentasPage() {
                 </div>
               </div>
               <p className="text-xs font-medium" style={{ color: C.textMuted }}>
-                {ventas.length} registro{ventas.length !== 1 ? 's' : ''} · exporta solo lo visible
+                {ventas.length} registro{ventas.length !== 1 ? 's' : ''} en esta página · exporta solo lo visible
               </p>
             </div>
           </div>

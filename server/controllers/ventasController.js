@@ -12,18 +12,20 @@ const fmtError = (res, err, ctx) => {
 export const getVentas = async (req, res) => {
   try {
     const { ano, mes, vendedor, estado } = req.query;
+    const pageSize = 30;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const params = [];
     const conds = ['v.activo = true'];
 
     if (ano && mes) {
       params.push(`${ano}-${String(mes).padStart(2, '0')}`);
-      conds.push(`TO_CHAR(v.fecha_factura, 'YYYY-MM') = $${params.length}`);
+      conds.push(`TO_CHAR(v.fecha_entrega, 'YYYY-MM') = $${params.length}`);
     } else if (ano) {
       params.push(ano);
-      conds.push(`TO_CHAR(v.fecha_factura, 'YYYY') = $${params.length}`);
+      conds.push(`TO_CHAR(v.fecha_entrega, 'YYYY') = $${params.length}`);
     } else if (mes) {
-      params.push(`%${String(mes).padStart(2, '0')}%`);
-      conds.push(`TO_CHAR(v.fecha_factura, 'MM') = $${params.length}`);
+      params.push(String(mes).padStart(2, '0'));
+      conds.push(`TO_CHAR(v.fecha_entrega, 'MM') = $${params.length}`);
     }
 
     if (vendedor) {
@@ -38,7 +40,8 @@ export const getVentas = async (req, res) => {
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 
-    const { rows } = await query(
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      query(
       `SELECT v.id_venta, v.id_cliente, v.id_empleado_comision, v.fecha_factura,
               v.fecha_entrega, v.valor_factura, v.porcentaje_comision, v.valor_comision,
               v.valor_domicilio, v.estado, v.observaciones, v.created_at,
@@ -47,11 +50,29 @@ export const getVentas = async (req, res) => {
        LEFT JOIN public.clientes c ON v.id_cliente = c.id_cliente
        LEFT JOIN public.empleados e ON v.id_empleado_comision = e.id_empleado
        ${where}
-       ORDER BY v.fecha_factura DESC`,
-      params
-    );
+       ORDER BY v.fecha_entrega DESC NULLS LAST, v.id_venta DESC
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize]
+      ),
+      query(
+        `SELECT COUNT(*)::int AS total
+         FROM public.ventas v
+         ${where}`,
+        params
+      ),
+    ]);
+    const total = countRows[0]?.total || 0;
 
-    res.json({ success: true, data: rows });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
   } catch (e) {
     fmtError(res, e, 'getVentas');
   }

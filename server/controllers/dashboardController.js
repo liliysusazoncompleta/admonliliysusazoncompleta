@@ -30,10 +30,10 @@ export const getBalance = async (req, res) => {
     }
 
     const ventaParams = [ano];
-    let ventaPeriodo = `EXTRACT(YEAR FROM v.fecha_factura) = $1 AND v.activo = true`;
+    let ventaPeriodo = `EXTRACT(YEAR FROM v.fecha_entrega) = $1 AND v.activo = true`;
     if (mes != null) {
       ventaParams.push(mes);
-      ventaPeriodo += ` AND EXTRACT(MONTH FROM v.fecha_factura) = $2`;
+      ventaPeriodo += ` AND EXTRACT(MONTH FROM v.fecha_entrega) = $2`;
     }
 
     const compraParams = [ano];
@@ -74,23 +74,23 @@ export const getBalance = async (req, res) => {
                     COALESCE(co.cantidad, 0)::int AS cant_compras
              FROM generate_series(1, 12) AS m(mes)
              LEFT JOIN (
-               SELECT EXTRACT(MONTH FROM fecha_factura)::int AS mes,
+               SELECT EXTRACT(MONTH FROM fecha_entrega)::int AS mes,
                       SUM(valor_factura + COALESCE(valor_domicilio, 0)) AS total,
                       COUNT(*) AS cantidad
                FROM public.ventas
                WHERE activo = true
                  AND estado = 'entregada'
-                 AND EXTRACT(YEAR FROM fecha_factura) = $1
+                 AND EXTRACT(YEAR FROM fecha_entrega) = $1
                GROUP BY 1
              ) ve ON ve.mes = m.mes
              LEFT JOIN (
-               SELECT EXTRACT(MONTH FROM fecha_factura)::int AS mes,
+               SELECT EXTRACT(MONTH FROM fecha_entrega)::int AS mes,
                       SUM(valor_factura + COALESCE(valor_domicilio, 0)) AS total,
                       COUNT(*) AS cantidad
                FROM public.ventas
                WHERE activo = true
                  AND estado = 'cancelada'
-                 AND EXTRACT(YEAR FROM fecha_factura) = $1
+                 AND EXTRACT(YEAR FROM fecha_entrega) = $1
                GROUP BY 1
              ) vc ON vc.mes = m.mes
              LEFT JOIN (

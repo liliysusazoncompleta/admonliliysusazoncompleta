@@ -29,6 +29,17 @@ Este proyecto es una aplicación web fullstack para administrar operaciones de c
 
 ## ✨ Últimas modificaciones implementadas
 
+- ✅ **Módulo Notas y notificaciones por usuario**:
+  - Los usuarios autenticados pueden crear, consultar y editar cualquier nota; solo el autor o un administrador pueden eliminarla.
+  - Las notas se muestran como post-its, con selección de colores amarillo, rosado, verde, azul y naranja.
+  - Se registra y muestra el último usuario que modificó cada nota y la fecha/hora de modificación; para notas anteriores sin editor registrado se muestra el creador.
+  - El listado se ordena de la nota más reciente a la más antigua.
+  - La campana avisa a los demás usuarios cuando se crea o modifica una nota. Al abrirla, cada notificación visible se marca como leída únicamente para el usuario actual.
+  - La lectura se guarda en PostgreSQL por destinatario; una nueva creación o modificación vuelve a activar la notificación para los demás usuarios.
+  - Ejecutar `scripts/migration_notas.sql` en cada base de datos antes de usar este módulo; la migración es repetible y agrega el color y el último editor a las notas existentes.
+- ✅ **Corrección de fechas en Ventas y Compras**:
+  - Las fechas de tipo `DATE` se muestran usando sus componentes de calendario, sin convertirlas a la zona horaria del navegador.
+  - La fecha visible coincide con la fecha ingresada, también en las tablas y exportaciones CSV.
 - ✅ **Dashboard de balance financiero** (`DashboardPage` + `/api/dashboard/balance`):
   - Menú lateral renombrado a **Dashboard** (antes “Inicio”).
   - Filtros por **año** y/o **mes** para comparar ingresos y egresos del período.

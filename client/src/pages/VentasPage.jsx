@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../lib/api.js';
 import AppLayout from '../components/AppLayout.jsx';
+import { formatDate } from '../lib/formatDate.js';
 
 const C = {
   primary: '#476500', primary2: '#5d7f13',
@@ -389,13 +390,13 @@ export default function VentasPage() {
     ];
 
     const filas = ventas.map(v => [
-      v.fecha_factura ? new Date(v.fecha_factura).toLocaleDateString('es-CO') : '',
+      formatDate(v.fecha_factura, ''),
       v.cliente_nombre || '',
       v.empleado_nombre || '',
       Number(v.valor_factura || 0).toLocaleString('es-CO'),
       Number(v.valor_comision || 0).toLocaleString('es-CO'),
       Number(v.valor_domicilio || 0).toLocaleString('es-CO'),
-      v.fecha_entrega ? new Date(v.fecha_entrega).toLocaleDateString('es-CO') : '',
+      formatDate(v.fecha_entrega, ''),
       v.hora_entrega || '',
       v.estado || '',
     ]);
@@ -614,7 +615,7 @@ export default function VentasPage() {
                   {ventas.map(venta => (
                     <tr key={venta.id_venta} style={{ borderBottom: `1px solid ${C.border}` }}>
                       <td className="px-4 py-3" style={{ color: C.text }}>
-                        {new Date(venta.fecha_factura).toLocaleDateString('es-CO')}
+                        {formatDate(venta.fecha_factura)}
                       </td>
                       <td className="px-4 py-3" style={{ color: C.text }}>{venta.cliente_nombre}</td>
                       <td className="px-4 py-3" style={{ color: C.text }}>{venta.empleado_nombre}</td>
@@ -628,7 +629,7 @@ export default function VentasPage() {
                         ${Number(venta.valor_domicilio || 0).toLocaleString('es-CO')}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {venta.fecha_entrega ? new Date(venta.fecha_entrega).toLocaleDateString('es-CO') : '—'}
+                        {formatDate(venta.fecha_entrega)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button onClick={() => handleChangeEstado(venta)} disabled={updating === venta.id_venta}
@@ -779,7 +780,7 @@ export default function VentasPage() {
                         style={{ borderBottom: `1px solid ${C.border}`,
                                  backgroundColor: i % 2 === 0 ? C.white : C.surface }}>
                       <td className="px-4 py-2.5 text-xs" style={{ color: C.text }}>
-                        {v.fecha_factura ? new Date(v.fecha_factura).toLocaleDateString('es-CO') : '—'}
+                        {formatDate(v.fecha_factura)}
                       </td>
                       <td className="px-4 py-2.5 text-xs font-semibold" style={{ color: C.text }}>
                         {v.cliente_nombre}
@@ -797,7 +798,7 @@ export default function VentasPage() {
                         ${Number(v.valor_domicilio || 0).toLocaleString('es-CO')}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-center" style={{ color: C.text }}>
-                        {v.fecha_entrega ? new Date(v.fecha_entrega).toLocaleDateString('es-CO') : '—'}
+                        {formatDate(v.fecha_entrega)}
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         <span className="px-2 py-1 rounded-full text-xs font-semibold"

@@ -17,6 +17,7 @@ import proveedoresRoutes from './routes/proveedoresRoutes.js';
 import comprasRoutes from './routes/comprasRoutes.js';
 import catalogoPublicoRoutes from './routes/catalogoPublico.routes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import notasRoutes from './routes/notasRoutes.js';
 
 import path from 'path';
 
@@ -68,6 +69,7 @@ app.use('/api/usuarios',     usuariosRoutes);
 app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/compras', comprasRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/notas', notasRoutes);
 app.use('/api/tipo-producto', tipoProductoRoutes);
 app.use('/api/admin', seedRoutes);
 app.use('/api/catalogo', catalogoPublicoRoutes);

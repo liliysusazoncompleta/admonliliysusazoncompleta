@@ -6,6 +6,7 @@ import logoLili from '../assets/LOGO_LILI.jpg';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useCart } from '../hooks/useCart.jsx';
+import api from '../lib/api.js';
 
 const C = {
   primary:'#476500', primary2:'#5d7f13',
@@ -38,6 +39,7 @@ export const IK = {
   portafolio: ['M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z','M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z','M12 12h.01'],
   proveedores: ['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z','M9 22V12h6v10'],
   compras: ['M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z','M3 6h18','M16 10a4 4 0 0 1-8 0'],
+  notas: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z','M14 2v6h6','M8 13h8','M8 17h8'],
   menu:        ['M3 6h18','M3 12h18','M3 18h18'],
   close:       ['M18 6 6 18','M6 6l12 12'],
 };
@@ -51,6 +53,7 @@ const NAV_ITEMS = [
   { key:'portafolio', label:'Portafolio Empresarial', ik:'portafolio', path:'/portafolio' },
   { key:'ventas',    label:'Ventas',    ik:'ventas',    path:'/ventas'    },
   { key:'compras', label:'Compras', ik:'compras', path:'/compras' },
+  { key:'notas', label:'Notas', ik:'notas', path:'/notas' },
   { key:'empleados', label:'Empleados', ik:'empleados', path:'/empleados' },
   { key:'usuarios',  label:'Usuarios',  ik:'usuarios',  path:'/usuarios'  },
   { key:'proveedores', label:'Proveedores', ik:'proveedores', path:'/proveedores' },
@@ -165,11 +168,68 @@ function Topbar({ usuario, searchValue, onSearch, onLogout, onMenuToggle }) {
   const { totalUnidades } = useCart();
   const [dropOpen, setDropOpen] = useState(false);
   const dropRef = useRef(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [notificationError, setNotificationError] = useState('');
+  const notificationRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    const refreshUnreadCount = async () => {
+      try {
+        const { data } = await api.get('/notas/notificaciones');
+        if (active) setUnreadCount(data.unreadCount || 0);
+      } catch (error) {
+        console.error('[notificaciones] No fue posible consultar el estado:', error);
+      }
+    };
+    refreshUnreadCount();
+    const interval = setInterval(refreshUnreadCount, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const toggleNotifications = async () => {
+    if (notificationsOpen) {
+      setNotificationsOpen(false);
+      return;
+    }
+
+    setNotificationsOpen(true);
+    setNotificationLoading(true);
+    setNotificationError('');
+    try {
+      const { data } = await api.get('/notas/notificaciones');
+      const visibleNotifications = data.data || [];
+      setNotifications(visibleNotifications);
+      setUnreadCount(data.unreadCount || 0);
+
+      const unreadIds = visibleNotifications.filter(item => !item.leida_en).map(item => item.id);
+      if (unreadIds.length) {
+        const result = await api.patch('/notas/notificaciones/leidas', { ids: unreadIds });
+        setUnreadCount(result.data.unreadCount || 0);
+        setNotifications(items => items.map(item =>
+          unreadIds.includes(item.id) ? { ...item, leida_en: new Date().toISOString() } : item
+        ));
+      }
+    } catch (error) {
+      console.error('[notificaciones] No fue posible cargar las notificaciones:', error);
+      setNotificationError('No fue posible cargar las notificaciones.');
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handler = (e) => {
       if (dropRef.current && !dropRef.current.contains(e.target))
         setDropOpen(false);
+      if (notificationRef.current && !notificationRef.current.contains(e.target))
+        setNotificationsOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -225,10 +285,58 @@ function Topbar({ usuario, searchValue, onSearch, onLogout, onMenuToggle }) {
         </button>
 
         {/* Campana */}
-        <button className="relative p-2 rounded-lg" style={{ backgroundColor:C.container }}>
-          <Ic d={IK.bell} size={17} stroke={C.textMuted}/>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ backgroundColor:C.orange }}/>
-        </button>
+        <div className="relative" ref={notificationRef}>
+          <button onClick={toggleNotifications} aria-label="Notificaciones de notas"
+            aria-expanded={notificationsOpen}
+            className="relative p-2 rounded-lg" style={{ backgroundColor:C.container }}>
+            <Ic d={IK.bell} size={17} stroke={unreadCount ? C.orange : C.textMuted}/>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{ backgroundColor:C.orange }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+          {notificationsOpen && (
+            <div className="absolute right-0 top-11 w-80 max-w-[calc(100vw-2rem)] rounded-2xl overflow-hidden z-50"
+                 style={{ backgroundColor:C.white, border:`1px solid ${C.border}`,
+                          boxShadow:'0 12px 32px rgba(26,28,21,0.15)' }}>
+              <div className="px-4 py-3 flex items-center justify-between"
+                   style={{ borderBottom:`1px solid ${C.border}` }}>
+                <p className="text-sm font-bold" style={{ color:C.text }}>Notificaciones de notas</p>
+                <button onClick={() => setNotificationsOpen(false)} aria-label="Cerrar notificaciones"
+                  style={{ border:'none', background:'none', color:C.textMuted, cursor:'pointer', fontSize:18 }}>×</button>
+              </div>
+              <div style={{ maxHeight:320, overflowY:'auto' }}>
+                {notificationLoading ? (
+                  <p className="px-4 py-5 text-sm" style={{ color:C.textMuted }}>Cargando...</p>
+                ) : notificationError ? (
+                  <p className="px-4 py-5 text-sm" style={{ color:'#ba1a1a' }}>{notificationError}</p>
+                ) : notifications.length ? notifications.map(item => (
+                  <div key={item.id} className="px-4 py-3"
+                       style={{ borderBottom:`1px solid ${C.border}`, backgroundColor:item.leida_en ? C.white : '#f7f9f0' }}>
+                    <p className="text-xs font-semibold" style={{ color:C.text }}>
+                      {item.actor_nombre} {item.accion} una nota
+                    </p>
+                    <p className="text-xs mt-1" style={{ color:C.textMuted, overflowWrap:'anywhere' }}>
+                      {item.contenido}
+                    </p>
+                    <p className="text-[10px] mt-1" style={{ color:C.textMuted }}>
+                      {new Date(item.created_at).toLocaleString('es-CO')}
+                    </p>
+                  </div>
+                )) : (
+                  <p className="px-4 py-5 text-sm" style={{ color:C.textMuted }}>No tienes notificaciones.</p>
+                )}
+              </div>
+              <button onClick={() => { setNotificationsOpen(false); navigate('/notas'); }}
+                className="w-full px-4 py-3 text-left text-xs font-bold"
+                style={{ color:C.primary, border:'none', backgroundColor:C.white, cursor:'pointer' }}>
+                Ir al módulo de Notas
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Nombre usuario */}
         <span className="text-xs font-bold hidden md:block" style={{ color:C.textMuted }}>{nombreLabel}</span>

@@ -17,6 +17,7 @@ import MiCuentaPage           from './pages/MiCuentaPage.jsx';
 import CartaPage from './pages/CartaPage.jsx';
 import ProveedoresPage from './pages/ProveedoresPage.jsx';
 import PortafolioPage from './pages/PortafolioPage.jsx';
+import NotasPage from './pages/NotasPage.jsx';
 
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/ventas"          element={<ProtectedRoute roles={['admin']}><VentasPage /></ProtectedRoute>} />
           <Route path="/compras"         element={<ProtectedRoute><ComprasPage /></ProtectedRoute>} />
           <Route path="/mi-cuenta"       element={<ProtectedRoute><MiCuentaPage /></ProtectedRoute>} />
+          <Route path="/notas"           element={<ProtectedRoute><NotasPage /></ProtectedRoute>} />
           <Route path="/portafolio"      element={<ProtectedRoute><PortafolioPage /></ProtectedRoute>} />
          <Route path="/proveedores" element={<ProtectedRoute><ProveedoresPage /></ProtectedRoute>} />
          <Route path="/ventas"    element={<ProtectedRoute roles={['admin']}><VentasPage /></ProtectedRoute>} />

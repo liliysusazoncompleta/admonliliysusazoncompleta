@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout.jsx';
 import api       from '../lib/api.js';
+import { formatDate } from '../lib/formatDate.js';
 
 const C = {
   primary:'#476500', primary2:'#5d7f13',
@@ -15,13 +16,7 @@ const C = {
   successBg:'#eef3e4',
 };
 
-const fmtFecha = v => {
-  if (!v) return '—';
-  // Si ya tiene hora (ISO completo de PostgreSQL), usarlo directo
-  // Si es solo fecha (YYYY-MM-DD), agregar hora para evitar desfase de zona horaria
-  const d = v.includes('T') ? new Date(v) : new Date(v + 'T12:00:00');
-  return isNaN(d) ? v : d.toLocaleDateString('es-CO');
-};
+const fmtFecha = value => formatDate(value);
 const fmtValor = v => `$${Number(v).toLocaleString('es-CO')}`;
 
 /* ── Toast ──────────────────────────────────────────────────── */
